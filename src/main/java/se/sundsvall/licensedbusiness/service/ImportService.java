@@ -12,15 +12,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.licensedbusiness.api.model.ImportResult;
-import se.sundsvall.licensedbusiness.integration.db.AddressEntity;
-import se.sundsvall.licensedbusiness.integration.db.LicenseHolderEntity;
-import se.sundsvall.licensedbusiness.integration.db.RestaurantNumberAssignmentEntity;
-import se.sundsvall.licensedbusiness.integration.db.RestaurantNumberEntity;
-import se.sundsvall.licensedbusiness.integration.db.converter.AssignmentStatus;
 import se.sundsvall.licensedbusiness.integration.db.dao.AddressRepository;
 import se.sundsvall.licensedbusiness.integration.db.dao.LicenseHolderRepository;
 import se.sundsvall.licensedbusiness.integration.db.dao.RestaurantNumberAssignmentRepository;
 import se.sundsvall.licensedbusiness.integration.db.dao.RestaurantNumberRepository;
+import se.sundsvall.licensedbusiness.integration.db.model.AddressEntity;
+import se.sundsvall.licensedbusiness.integration.db.model.LicenseHolderEntity;
+import se.sundsvall.licensedbusiness.integration.db.model.RestaurantNumberAssignmentEntity;
+import se.sundsvall.licensedbusiness.integration.db.model.RestaurantNumberEntity;
+import se.sundsvall.licensedbusiness.integration.db.model.enums.AssignmentStatus;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
