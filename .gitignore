@@ -54,3 +54,7 @@ hs_err_pid*
 # Spring
 application-default.*
 
+
+# Local import data (never commit real business data)
+*.xlsx
+restaurant-numbers-import.csv
