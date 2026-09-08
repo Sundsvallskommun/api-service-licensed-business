@@ -11,3 +11,8 @@ openapi:
 spring:
   application:
     name: api-licensed-business
+  flyway:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: none
