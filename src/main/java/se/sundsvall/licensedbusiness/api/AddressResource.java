@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -18,6 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
 import se.sundsvall.dept44.common.validators.annotation.ValidMunicipalityId;
 import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.licensedbusiness.api.model.Address;
+import se.sundsvall.licensedbusiness.api.model.AddressPagingParameters;
+import se.sundsvall.licensedbusiness.api.model.Addresses;
 import se.sundsvall.licensedbusiness.service.AddressService;
 
 import static org.springframework.http.HttpStatus.NOT_IMPLEMENTED;
@@ -42,10 +45,10 @@ class AddressResource {
 		@ApiResponse(responseCode = "200", description = "OK", useReturnTypeSchema = true)
 	})
 	@GetMapping
-	ResponseEntity<Void> getAddresses(
+	ResponseEntity<Addresses> getAddresses(
 		@Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @PathVariable @ValidMunicipalityId final String municipalityId,
-		final Pageable pageable) {
-		throw Problem.valueOf(NOT_IMPLEMENTED, "Not yet implemented");
+		@ParameterObject final AddressPagingParameters pagingParameters) {
+		return ResponseEntity.ok(addressService.getAddresses(municipalityId, pagingParameters));
 	}
 
 	@Operation(summary = "Get an address by ID", responses = {

@@ -1,6 +1,7 @@
 package se.sundsvall.licensedbusiness.service.mapper;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import se.sundsvall.licensedbusiness.integration.db.model.AddressEntity;
 
@@ -34,5 +35,22 @@ class AddressMapperTest {
 	@Test
 	void toAddressWithNullEntity() {
 		assertThat(addressMapper.toAddress(null)).isNull();
+	}
+
+	@Test
+	void toAddresses() {
+		final var entity1 = AddressEntity.create().withId("address-1").withStreetAddress("Storgatan 1");
+		final var entity2 = AddressEntity.create().withId("address-2").withStreetAddress("Kajplats 1");
+
+		final var addresses = addressMapper.toAddresses(List.of(entity1, entity2));
+
+		assertThat(addresses).hasSize(2);
+		assertThat(addresses.get(0).getId()).isEqualTo("address-1");
+		assertThat(addresses.get(1).getId()).isEqualTo("address-2");
+	}
+
+	@Test
+	void toAddressesWithNullList() {
+		assertThat(addressMapper.toAddresses(null)).isEmpty();
 	}
 }

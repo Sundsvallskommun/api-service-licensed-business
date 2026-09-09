@@ -1,6 +1,7 @@
 package se.sundsvall.licensedbusiness.api;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -8,6 +9,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
 import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.licensedbusiness.api.model.Address;
+import se.sundsvall.licensedbusiness.api.model.AddressPagingParameters;
+import se.sundsvall.licensedbusiness.api.model.Addresses;
 import se.sundsvall.licensedbusiness.service.AddressService;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,11 +29,16 @@ class AddressResourceTest {
 
 	@Test
 	void getAddresses() {
-		final var addressResource = new AddressResource(addressService);
+		final var pagingParameters = new AddressPagingParameters();
+		final var expected = Addresses.create().withAddresses(List.of());
+		when(addressService.getAddresses(MUNICIPALITY_ID, pagingParameters)).thenReturn(expected);
 
-		assertThatThrownBy(() -> addressResource.getAddresses(MUNICIPALITY_ID, Pageable.unpaged()))
-			.isInstanceOf(Problem.class)
-			.hasMessageContaining("Not yet implemented");
+		final var addressResource = new AddressResource(addressService);
+		final var response = addressResource.getAddresses(MUNICIPALITY_ID, pagingParameters);
+
+		assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+		assertThat(response.getBody()).isEqualTo(expected);
+		verify(addressService).getAddresses(MUNICIPALITY_ID, pagingParameters);
 	}
 
 	@Test

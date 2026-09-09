@@ -1,12 +1,17 @@
 package se.sundsvall.licensedbusiness.service;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import se.sundsvall.dept44.problem.Problem;
+import se.sundsvall.licensedbusiness.api.model.AddressPagingParameters;
 import se.sundsvall.licensedbusiness.integration.db.dao.AddressRepository;
 import se.sundsvall.licensedbusiness.integration.db.model.AddressEntity;
 import se.sundsvall.licensedbusiness.service.mapper.AddressMapper;
@@ -70,5 +75,23 @@ class AddressServiceTest {
 		assertThatThrownBy(() -> addressService.getAddress(MUNICIPALITY_ID, ADDRESS_ID))
 			.isInstanceOf(Problem.class)
 			.hasMessageContaining("Address not found");
+	}
+
+	@Test
+	void getAddresses() {
+		final var entity = AddressEntity.create().withId(ADDRESS_ID).withStreetAddress("Storgatan 1").withMunicipalityId(MUNICIPALITY_ID);
+		final var pagingParameters = new AddressPagingParameters();
+		pagingParameters.setPage(1);
+		pagingParameters.setLimit(20);
+		final var expectedPageable = PageRequest.of(0, 20, Sort.unsorted());
+		final var page = new PageImpl<>(List.of(entity), expectedPageable, 1);
+		when(addressRepository.findAllByMunicipalityId(MUNICIPALITY_ID, expectedPageable)).thenReturn(page);
+
+		final var addressService = new AddressService(addressRepository, addressMapper);
+		final var result = addressService.getAddresses(MUNICIPALITY_ID, pagingParameters);
+
+		assertThat(result.getAddresses()).hasSize(1);
+		assertThat(result.getAddresses().getFirst().getId()).isEqualTo(ADDRESS_ID);
+		assertThat(result.getMetaData().getTotalRecords()).isEqualTo(1);
 	}
 }
