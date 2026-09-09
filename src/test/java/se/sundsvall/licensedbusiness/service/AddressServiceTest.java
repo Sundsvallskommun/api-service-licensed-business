@@ -91,8 +91,8 @@ class AddressServiceTest {
 		final var addressService = new AddressService(addressRepository, addressMapper);
 		final var result = addressService.getAddresses(MUNICIPALITY_ID, pagingParameters);
 
-		assertThat(result.getAddresses()).hasSize(1);
-		assertThat(result.getAddresses().getFirst().getId()).isEqualTo(ADDRESS_ID);
+		assertThat(result.getContent()).hasSize(1);
+		assertThat(result.getContent().getFirst().getId()).isEqualTo(ADDRESS_ID);
 		assertThat(result.getMetaData().getTotalRecords()).isEqualTo(1);
 	}
 
@@ -110,8 +110,8 @@ class AddressServiceTest {
 		final var addressService = new AddressService(addressRepository, addressMapper);
 		final var result = addressService.searchAddresses(MUNICIPALITY_ID, searchParameters);
 
-		assertThat(result.getAddresses()).hasSize(1);
-		assertThat(result.getAddresses().getFirst().getId()).isEqualTo(ADDRESS_ID);
+		assertThat(result.getContent()).hasSize(1);
+		assertThat(result.getContent().getFirst().getId()).isEqualTo(ADDRESS_ID);
 		assertThat(result.getMetaData().getTotalRecords()).isEqualTo(1);
 	}
 }

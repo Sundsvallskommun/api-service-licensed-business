@@ -30,7 +30,7 @@ class AddressResourceTest {
 	@Test
 	void getAddresses() {
 		final var pagingParameters = new AddressPagingParameters();
-		final var expected = Addresses.create().withAddresses(List.of());
+		final var expected = Addresses.create().withContent(List.of());
 		when(addressService.getAddresses(MUNICIPALITY_ID, pagingParameters)).thenReturn(expected);
 
 		final var addressResource = new AddressResource(addressService);
@@ -58,7 +58,7 @@ class AddressResourceTest {
 	void searchAddresses() {
 		final var searchParameters = new AddressSearchParameters();
 		searchParameters.setQuery("Storgatan");
-		final var expected = Addresses.create().withAddresses(List.of());
+		final var expected = Addresses.create().withContent(List.of());
 		when(addressService.searchAddresses(MUNICIPALITY_ID, searchParameters)).thenReturn(expected);
 
 		final var addressResource = new AddressResource(addressService);

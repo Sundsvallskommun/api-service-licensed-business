@@ -26,11 +26,13 @@ class AddressPagingParametersTest {
 		different.setPage(3);
 		different.setLimit(10);
 
-		assertThat(first).isEqualTo(second).hasSameHashCodeAs(second);
-		assertThat(first).isNotEqualTo(different);
-		assertThat(first).isNotEqualTo(null);
-		assertThat(first).isNotEqualTo("not a paging parameters instance");
-		assertThat(first).isEqualTo(first);
+		assertThat(first)
+			.isEqualTo(second)
+			.hasSameHashCodeAs(second)
+			.isNotEqualTo(different)
+			.isNotEqualTo(null)
+			.isNotEqualTo("not a paging parameters instance")
+			.isEqualTo(first);
 	}
 
 	@Test

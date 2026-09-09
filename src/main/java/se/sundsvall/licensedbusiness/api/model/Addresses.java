@@ -17,7 +17,7 @@ public class Addresses {
 	private PagingMetaData metaData;
 
 	@ArraySchema(schema = @Schema(implementation = Address.class, accessMode = READ_ONLY))
-	private List<Address> addresses;
+	private List<Address> content;
 
 	public static Addresses create() {
 		return new Addresses();
@@ -36,16 +36,16 @@ public class Addresses {
 		return this;
 	}
 
-	public List<Address> getAddresses() {
-		return addresses;
+	public List<Address> getContent() {
+		return content;
 	}
 
-	public void setAddresses(List<Address> addresses) {
-		this.addresses = addresses;
+	public void setContent(List<Address> content) {
+		this.content = content;
 	}
 
-	public Addresses withAddresses(List<Address> addresses) {
-		this.addresses = addresses;
+	public Addresses withContent(List<Address> content) {
+		this.content = content;
 		return this;
 	}
 
@@ -53,7 +53,7 @@ public class Addresses {
 	public String toString() {
 		return "Addresses{" +
 			"metaData=" + metaData +
-			", addresses=" + addresses +
+			", content=" + content +
 			'}';
 	}
 
@@ -62,11 +62,11 @@ public class Addresses {
 		if (o == null || getClass() != o.getClass())
 			return false;
 		Addresses that = (Addresses) o;
-		return Objects.equals(metaData, that.metaData) && Objects.equals(addresses, that.addresses);
+		return Objects.equals(metaData, that.metaData) && Objects.equals(content, that.content);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(metaData, addresses);
+		return Objects.hash(metaData, content);
 	}
 }

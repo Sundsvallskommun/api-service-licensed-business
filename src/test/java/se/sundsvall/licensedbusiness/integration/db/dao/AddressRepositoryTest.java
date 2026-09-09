@@ -65,7 +65,7 @@ class AddressRepositoryTest {
 	void findAllByMunicipalityIdAndStreetAddressContainingIgnoreCaseExcludesOtherMunicipalities() {
 		final var page = addressRepository.findAllByMunicipalityIdAndStreetAddressContainingIgnoreCase(MUNICIPALITY_ID, "storgatan", PageRequest.of(0, 20));
 
-		assertThat(page.getContent()).extracting("id").doesNotContain("address-16");
+		assertThat(page.getContent()).extracting("id").isNotEmpty().doesNotContain("address-16");
 	}
 
 	@Test

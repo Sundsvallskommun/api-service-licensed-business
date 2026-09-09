@@ -31,11 +31,13 @@ class AddressSearchParametersTest {
 		differentQuery.setLimit(20);
 		differentQuery.setQuery("Kajplats");
 
-		assertThat(first).isEqualTo(second).hasSameHashCodeAs(second);
-		assertThat(first).isNotEqualTo(differentQuery);
-		assertThat(first).isNotEqualTo(null);
-		assertThat(first).isNotEqualTo("not a search parameters instance");
-		assertThat(first).isEqualTo(first);
+		assertThat(first)
+			.isEqualTo(second)
+			.hasSameHashCodeAs(second)
+			.isNotEqualTo(differentQuery)
+			.isNotEqualTo(null)
+			.isNotEqualTo("not a search parameters instance")
+			.isEqualTo(first);
 	}
 
 	@Test

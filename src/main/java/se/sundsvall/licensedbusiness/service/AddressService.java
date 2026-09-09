@@ -53,6 +53,6 @@ public class AddressService {
 	private Addresses toAddresses(final Page<AddressEntity> page) {
 		return Addresses.create()
 			.withMetaData(PagingAndSortingMetaData.create().withPageData(page))
-			.withAddresses(addressMapper.toAddresses(page.getContent()));
+			.withContent(addressMapper.toAddresses(page.getContent()));
 	}
 }

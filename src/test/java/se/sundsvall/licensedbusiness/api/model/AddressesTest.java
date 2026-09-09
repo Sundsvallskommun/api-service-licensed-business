@@ -32,20 +32,20 @@ class AddressesTest {
 	void builderTest() {
 		final var addresses = Addresses.create()
 			.withMetaData(META_DATA)
-			.withAddresses(ADDRESSES);
+			.withContent(ADDRESSES);
 
 		assertThat(addresses.getMetaData()).isEqualTo(META_DATA);
-		assertThat(addresses.getAddresses()).isEqualTo(ADDRESSES);
+		assertThat(addresses.getContent()).isEqualTo(ADDRESSES);
 	}
 
 	@Test
 	void setterAndGetterTest() {
 		final var addresses = new Addresses();
 		addresses.setMetaData(META_DATA);
-		addresses.setAddresses(ADDRESSES);
+		addresses.setContent(ADDRESSES);
 
 		assertThat(addresses.getMetaData()).isEqualTo(META_DATA);
-		assertThat(addresses.getAddresses()).isEqualTo(ADDRESSES);
+		assertThat(addresses.getContent()).isEqualTo(ADDRESSES);
 	}
 
 	@Test
