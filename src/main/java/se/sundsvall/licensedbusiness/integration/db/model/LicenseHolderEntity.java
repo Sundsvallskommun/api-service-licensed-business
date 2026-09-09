@@ -1,4 +1,4 @@
-package se.sundsvall.licensedbusiness.integration.db;
+package se.sundsvall.licensedbusiness.integration.db.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Objects;
@@ -15,7 +16,11 @@ import org.hibernate.annotations.TimeZoneStorage;
 import static org.hibernate.annotations.TimeZoneStorageType.NORMALIZE;
 
 @Entity
-@Table(name = "license_holder")
+@Table(name = "license_holder", uniqueConstraints = {
+	@UniqueConstraint(name = "UK_LICENSE_HOLDER_ORG_NUMBER", columnNames = {
+		"org_number"
+	})
+})
 public class LicenseHolderEntity {
 
 	@Id

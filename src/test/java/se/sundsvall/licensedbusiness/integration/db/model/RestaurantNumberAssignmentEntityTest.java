@@ -1,11 +1,11 @@
-package se.sundsvall.licensedbusiness.integration.db;
+package se.sundsvall.licensedbusiness.integration.db.model;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import se.sundsvall.licensedbusiness.integration.db.converter.AssignmentStatus;
+import se.sundsvall.licensedbusiness.integration.db.model.enums.AssignmentStatus;
 
 import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanConstructor;
 import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanEqualsExcluding;

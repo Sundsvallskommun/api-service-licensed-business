@@ -1,4 +1,4 @@
-package se.sundsvall.licensedbusiness.integration.db;
+package se.sundsvall.licensedbusiness.integration.db.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

@@ -1,4 +1,4 @@
-package se.sundsvall.licensedbusiness.integration.db;
+package se.sundsvall.licensedbusiness.integration.db.model;
 
 import java.time.OffsetDateTime;
 import java.util.concurrent.atomic.AtomicInteger;

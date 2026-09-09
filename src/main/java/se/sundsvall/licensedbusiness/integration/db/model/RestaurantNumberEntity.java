@@ -1,4 +1,4 @@
-package se.sundsvall.licensedbusiness.integration.db;
+package se.sundsvall.licensedbusiness.integration.db.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -12,6 +12,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Objects;
@@ -23,6 +24,10 @@ import static org.hibernate.annotations.TimeZoneStorageType.NORMALIZE;
 @Table(name = "restaurant_number", indexes = {
 	@Index(name = "IDX_RESTAURANT_NUMBER_ADDRESS_ID", columnList = "address_id"),
 	@Index(name = "IDX_RESTAURANT_NUMBER_MUNICIPALITY_ID", columnList = "municipality_id")
+}, uniqueConstraints = {
+	@UniqueConstraint(name = "UK_RESTAURANT_NUMBER", columnNames = {
+		"restaurant_number"
+	})
 })
 public class RestaurantNumberEntity {
 
