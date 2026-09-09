@@ -20,3 +20,9 @@ spring:
           schema-generation:
             database:
               action: none
+schedulers:
+  update-assignment-status:
+    name: updateAssignmentStatus
+    cron: 0 0 1 * * *
+    shedlock-lock-at-most-for: PT10M
+    maximum-execution-time: PT10M
