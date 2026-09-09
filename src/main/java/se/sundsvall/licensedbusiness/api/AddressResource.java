@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import se.sundsvall.dept44.common.validators.annotation.ValidMunicipalityId;
 import se.sundsvall.dept44.problem.Problem;
+import se.sundsvall.licensedbusiness.api.model.Address;
+import se.sundsvall.licensedbusiness.service.AddressService;
 
 import static org.springframework.http.HttpStatus.NOT_IMPLEMENTED;
 import static org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON_VALUE;
@@ -29,6 +31,12 @@ import static org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON_VALUE;
 @ApiResponse(responseCode = "500", description = "Internal Server Error", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))
 @ApiResponse(responseCode = "502", description = "Bad Gateway", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))
 class AddressResource {
+
+	private final AddressService addressService;
+
+	AddressResource(final AddressService addressService) {
+		this.addressService = addressService;
+	}
 
 	@Operation(summary = "Get a paged list of addresses", responses = {
 		@ApiResponse(responseCode = "200", description = "OK", useReturnTypeSchema = true)
@@ -45,10 +53,10 @@ class AddressResource {
 		@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))
 	})
 	@GetMapping("/{addressId}")
-	ResponseEntity<Void> getAddress(
+	ResponseEntity<Address> getAddress(
 		@Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @PathVariable @ValidMunicipalityId final String municipalityId,
 		@Parameter(name = "addressId", description = "Address ID", example = "9ce333ec-a473-438b-8406-a71e957dc107") @PathVariable final String addressId) {
-		throw Problem.valueOf(NOT_IMPLEMENTED, "Not yet implemented");
+		return ResponseEntity.ok(addressService.getAddress(municipalityId, addressId));
 	}
 
 	@Operation(summary = "Search addresses", responses = {
