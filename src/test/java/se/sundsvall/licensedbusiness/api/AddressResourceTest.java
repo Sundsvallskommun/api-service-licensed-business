@@ -6,10 +6,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Pageable;
 import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.licensedbusiness.api.model.Address;
 import se.sundsvall.licensedbusiness.api.model.AddressPagingParameters;
+import se.sundsvall.licensedbusiness.api.model.AddressSearchParameters;
 import se.sundsvall.licensedbusiness.api.model.Addresses;
 import se.sundsvall.licensedbusiness.service.AddressService;
 
@@ -56,11 +56,17 @@ class AddressResourceTest {
 
 	@Test
 	void searchAddresses() {
-		final var addressResource = new AddressResource(addressService);
+		final var searchParameters = new AddressSearchParameters();
+		searchParameters.setQuery("Storgatan");
+		final var expected = Addresses.create().withAddresses(List.of());
+		when(addressService.searchAddresses(MUNICIPALITY_ID, searchParameters)).thenReturn(expected);
 
-		assertThatThrownBy(() -> addressResource.searchAddresses(MUNICIPALITY_ID, "Storgatan", Pageable.unpaged()))
-			.isInstanceOf(Problem.class)
-			.hasMessageContaining("Not yet implemented");
+		final var addressResource = new AddressResource(addressService);
+		final var response = addressResource.searchAddresses(MUNICIPALITY_ID, searchParameters);
+
+		assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+		assertThat(response.getBody()).isEqualTo(expected);
+		verify(addressService).searchAddresses(MUNICIPALITY_ID, searchParameters);
 	}
 
 	@Test

@@ -7,19 +7,18 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springdoc.core.annotations.ParameterObject;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import se.sundsvall.dept44.common.validators.annotation.ValidMunicipalityId;
 import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.licensedbusiness.api.model.Address;
 import se.sundsvall.licensedbusiness.api.model.AddressPagingParameters;
+import se.sundsvall.licensedbusiness.api.model.AddressSearchParameters;
 import se.sundsvall.licensedbusiness.api.model.Addresses;
 import se.sundsvall.licensedbusiness.service.AddressService;
 
@@ -66,11 +65,10 @@ class AddressResource {
 		@ApiResponse(responseCode = "200", description = "OK", useReturnTypeSchema = true)
 	})
 	@GetMapping("/search")
-	ResponseEntity<Void> searchAddresses(
+	ResponseEntity<Addresses> searchAddresses(
 		@Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @PathVariable @ValidMunicipalityId final String municipalityId,
-		@Parameter(name = "query", description = "Search query", example = "Storgatan 1") @RequestParam final String query,
-		final Pageable pageable) {
-		throw Problem.valueOf(NOT_IMPLEMENTED, "Not yet implemented");
+		@ParameterObject final AddressSearchParameters searchParameters) {
+		return ResponseEntity.ok(addressService.searchAddresses(municipalityId, searchParameters));
 	}
 
 	@Operation(summary = "Create an address", responses = {

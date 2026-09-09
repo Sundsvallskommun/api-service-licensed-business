@@ -12,4 +12,6 @@ public interface AddressRepository extends JpaRepository<AddressEntity, String> 
 	Optional<AddressEntity> findByStreetAddressAndPostalCodeAndMunicipalityId(String streetAddress, String postalCode, String municipalityId);
 
 	Page<AddressEntity> findAllByMunicipalityId(String municipalityId, Pageable pageable);
+
+	Page<AddressEntity> findAllByMunicipalityIdAndStreetAddressContainingIgnoreCase(String municipalityId, String streetAddress, Pageable pageable);
 }
