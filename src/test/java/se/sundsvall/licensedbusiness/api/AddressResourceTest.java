@@ -33,4 +33,11 @@ class AddressResourceTest {
 			.isInstanceOf(Problem.class)
 			.hasMessageContaining("Not yet implemented");
 	}
+
+	@Test
+	void createAddress() {
+		assertThatThrownBy(() -> addressResource.createAddress(MUNICIPALITY_ID))
+			.isInstanceOf(Problem.class)
+			.hasMessageContaining("Not yet implemented");
+	}
 }

@@ -1,6 +1,5 @@
 package se.sundsvall.licensedbusiness.api;
 
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,26 +15,16 @@ import static org.springframework.http.HttpStatus.NOT_IMPLEMENTED;
 
 @Validated
 @RestController
-@RequestMapping("/{municipalityId}/addresses")
-class AddressResource {
+@RequestMapping("/{municipalityId}/restaurant-numbers")
+class RestaurantNumberResource {
 
-	@GetMapping
-	ResponseEntity<Void> getAddresses(@PathVariable @ValidMunicipalityId final String municipalityId, final Pageable pageable) {
-		throw Problem.valueOf(NOT_IMPLEMENTED, "Not yet implemented");
-	}
-
-	@GetMapping("/{addressId}")
-	ResponseEntity<Void> getAddress(@PathVariable @ValidMunicipalityId final String municipalityId, @PathVariable final String addressId) {
-		throw Problem.valueOf(NOT_IMPLEMENTED, "Not yet implemented");
-	}
-
-	@GetMapping("/search")
-	ResponseEntity<Void> searchAddresses(@PathVariable @ValidMunicipalityId final String municipalityId, @RequestParam final String query, final Pageable pageable) {
+	@GetMapping("/inactive")
+	ResponseEntity<Void> getInactiveRestaurantNumbers(@PathVariable @ValidMunicipalityId final String municipalityId, @RequestParam final String addressId) {
 		throw Problem.valueOf(NOT_IMPLEMENTED, "Not yet implemented");
 	}
 
 	@PostMapping
-	ResponseEntity<Void> createAddress(@PathVariable @ValidMunicipalityId final String municipalityId) {
+	ResponseEntity<Void> createRestaurantNumber(@PathVariable @ValidMunicipalityId final String municipalityId) {
 		throw Problem.valueOf(NOT_IMPLEMENTED, "Not yet implemented");
 	}
 }
