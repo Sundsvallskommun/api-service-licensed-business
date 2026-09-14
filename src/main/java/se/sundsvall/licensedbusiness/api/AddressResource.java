@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -46,7 +47,7 @@ class AddressResource {
 	@GetMapping
 	ResponseEntity<Addresses> getAddresses(
 		@Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @PathVariable @ValidMunicipalityId final String municipalityId,
-		@ParameterObject final AddressPagingParameters pagingParameters) {
+		@Valid @ParameterObject final AddressPagingParameters pagingParameters) {
 		return ResponseEntity.ok(addressService.getAddresses(municipalityId, pagingParameters));
 	}
 
@@ -67,7 +68,7 @@ class AddressResource {
 	@GetMapping("/search")
 	ResponseEntity<Addresses> searchAddresses(
 		@Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @PathVariable @ValidMunicipalityId final String municipalityId,
-		@ParameterObject final AddressSearchParameters searchParameters) {
+		@Valid @ParameterObject final AddressSearchParameters searchParameters) {
 		return ResponseEntity.ok(addressService.searchAddresses(municipalityId, searchParameters));
 	}
 

@@ -1,12 +1,14 @@
 package se.sundsvall.licensedbusiness.api.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
 import java.util.Objects;
 import se.sundsvall.dept44.models.api.paging.AbstractParameterPagingAndSortingBase;
 
 @Schema(description = "Address search and paging parameters")
 public class AddressSearchParameters extends AbstractParameterPagingAndSortingBase {
 
+	@NotBlank
 	@Schema(description = "Search query", examples = "Storgatan 1")
 	private String query;
 
