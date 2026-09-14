@@ -40,19 +40,21 @@ class RestaurantNumberAssignmentEntityTest {
 		assertThat(RestaurantNumberAssignmentEntity.class, allOf(
 			hasValidBeanConstructor(),
 			hasValidGettersAndSetters(),
-			hasValidBeanHashCodeExcluding("restaurantNumber", "licenseHolder"),
-			hasValidBeanEqualsExcluding("restaurantNumber", "licenseHolder"),
-			hasValidBeanToStringExcluding("restaurantNumber", "licenseHolder")));
+			hasValidBeanHashCodeExcluding("restaurantNumber", "licenseHolder", "address"),
+			hasValidBeanEqualsExcluding("restaurantNumber", "licenseHolder", "address"),
+			hasValidBeanToStringExcluding("restaurantNumber", "licenseHolder", "address")));
 	}
 
 	@Test
 	void builderTest() {
 		final var restaurantNumber = new RestaurantNumberEntity();
 		final var licenseHolder = new LicenseHolderEntity();
+		final var address = new AddressEntity();
 		final var assignmentEntity = RestaurantNumberAssignmentEntity.create()
 			.withId(ID)
 			.withRestaurantNumber(restaurantNumber)
 			.withLicenseHolder(licenseHolder)
+			.withAddress(address)
 			.withHolderName(HOLDER_NAME)
 			.withPremisesName(PREMISES_NAME)
 			.withValidFrom(VALID_FROM)
@@ -63,6 +65,7 @@ class RestaurantNumberAssignmentEntityTest {
 		assertThat(assignmentEntity.getId()).isEqualTo(ID);
 		assertThat(assignmentEntity.getRestaurantNumber()).isEqualTo(restaurantNumber);
 		assertThat(assignmentEntity.getLicenseHolder()).isEqualTo(licenseHolder);
+		assertThat(assignmentEntity.getAddress()).isEqualTo(address);
 		assertThat(assignmentEntity.getHolderName()).isEqualTo(HOLDER_NAME);
 		assertThat(assignmentEntity.getPremisesName()).isEqualTo(PREMISES_NAME);
 		assertThat(assignmentEntity.getValidFrom()).isEqualTo(VALID_FROM);
@@ -76,10 +79,12 @@ class RestaurantNumberAssignmentEntityTest {
 	void setterAndGetterTest() {
 		final var restaurantNumber = new RestaurantNumberEntity();
 		final var licenseHolder = new LicenseHolderEntity();
+		final var address = new AddressEntity();
 		final var assignmentEntity = new RestaurantNumberAssignmentEntity();
 		assignmentEntity.setId(ID);
 		assignmentEntity.setRestaurantNumber(restaurantNumber);
 		assignmentEntity.setLicenseHolder(licenseHolder);
+		assignmentEntity.setAddress(address);
 		assignmentEntity.setHolderName(HOLDER_NAME);
 		assignmentEntity.setPremisesName(PREMISES_NAME);
 		assignmentEntity.setValidFrom(VALID_FROM);
@@ -90,6 +95,7 @@ class RestaurantNumberAssignmentEntityTest {
 		assertThat(assignmentEntity.getId()).isEqualTo(ID);
 		assertThat(assignmentEntity.getRestaurantNumber()).isEqualTo(restaurantNumber);
 		assertThat(assignmentEntity.getLicenseHolder()).isEqualTo(licenseHolder);
+		assertThat(assignmentEntity.getAddress()).isEqualTo(address);
 		assertThat(assignmentEntity.getHolderName()).isEqualTo(HOLDER_NAME);
 		assertThat(assignmentEntity.getPremisesName()).isEqualTo(PREMISES_NAME);
 		assertThat(assignmentEntity.getValidFrom()).isEqualTo(VALID_FROM);

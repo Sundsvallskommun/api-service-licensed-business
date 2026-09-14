@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
@@ -16,6 +17,7 @@ import se.sundsvall.licensedbusiness.integration.db.dao.RestaurantNumberAssignme
 import se.sundsvall.licensedbusiness.integration.db.dao.RestaurantNumberRepository;
 import se.sundsvall.licensedbusiness.integration.db.model.AddressEntity;
 import se.sundsvall.licensedbusiness.integration.db.model.LicenseHolderEntity;
+import se.sundsvall.licensedbusiness.integration.db.model.RestaurantNumberAssignmentEntity;
 import se.sundsvall.licensedbusiness.integration.db.model.RestaurantNumberEntity;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,7 +49,7 @@ class ImportServiceTest {
 		final var savedStorgatan = AddressEntity.create().withId("address-1").withStreetAddress("Storgatan 1").withPostalCode("852 30");
 		final var savedHolderA = LicenseHolderEntity.create().withId("holder-1").withOrgNumber("5566112233");
 		final var savedHolderB = LicenseHolderEntity.create().withId("holder-2").withOrgNumber("5566998877");
-		final var savedRestaurantNumber = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("1001").withAddress(savedStorgatan);
+		final var savedRestaurantNumber = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("1001");
 
 		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID))
 			.thenReturn(Optional.empty(), Optional.of(savedStorgatan));
@@ -78,6 +80,69 @@ class ImportServiceTest {
 		assertThat(result.assignmentsCreated()).isEqualTo(2);
 		assertThat(result.errors()).isEmpty();
 		verify(addressRepository, times(2)).findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID);
+
+		final var assignmentCaptor = ArgumentCaptor.forClass(RestaurantNumberAssignmentEntity.class);
+		verify(restaurantNumberAssignmentRepository, times(2)).save(assignmentCaptor.capture());
+		assertThat(assignmentCaptor.getAllValues()).extracting(RestaurantNumberAssignmentEntity::getAddress).containsOnly(savedStorgatan);
+	}
+
+	@Test
+	void importRestaurantNumbersLetsRestaurantNumberMoveBetweenAddresses() {
+		final var savedStorgatan = AddressEntity.create().withId("address-1").withStreetAddress("Storgatan 1").withPostalCode("852 30");
+		final var savedKajplats = AddressEntity.create().withId("address-2").withStreetAddress("Kajplats 1").withPostalCode("851 02");
+		final var savedHolder = LicenseHolderEntity.create().withId("holder-1").withOrgNumber("5566112233");
+		final var savedRestaurantNumber = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("1001");
+
+		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID)).thenReturn(Optional.of(savedStorgatan));
+		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Kajplats 1", "851 02", MUNICIPALITY_ID)).thenReturn(Optional.of(savedKajplats));
+		when(licenseHolderRepository.findByOrgNumber("5566112233")).thenReturn(Optional.of(savedHolder));
+		when(restaurantNumberRepository.findByRestaurantNumber("1001")).thenReturn(Optional.empty(), Optional.of(savedRestaurantNumber));
+		when(restaurantNumberRepository.save(any())).thenReturn(savedRestaurantNumber);
+
+		final var csv = """
+			street_address,postal_code,postal_area,restaurant_number,org_number,holder_name,premises_name,valid_from,valid_to,status
+			Storgatan 1,852 30,Sundsvall,1001,5566112233,Bolag A,Pub A,2020-01-01,2021-01-01,ENDED
+			Kajplats 1,851 02,Sundsvall,1001,5566112233,Bolag A,Pub A,2021-01-01,,ACTIVE
+			""";
+		final var file = new MockMultipartFile("file", "import.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8));
+
+		final var importService = new ImportService(addressRepository, licenseHolderRepository, restaurantNumberRepository, restaurantNumberAssignmentRepository);
+		final var result = importService.importRestaurantNumbers(MUNICIPALITY_ID, file);
+
+		assertThat(result.restaurantNumbersCreated()).isEqualTo(1);
+		assertThat(result.assignmentsCreated()).isEqualTo(2);
+		assertThat(result.errors()).isEmpty();
+
+		final var assignmentCaptor = ArgumentCaptor.forClass(RestaurantNumberAssignmentEntity.class);
+		verify(restaurantNumberAssignmentRepository, times(2)).save(assignmentCaptor.capture());
+		assertThat(assignmentCaptor.getAllValues()).extracting(RestaurantNumberAssignmentEntity::getAddress).containsExactly(savedStorgatan, savedKajplats);
+	}
+
+	@Test
+	void importRestaurantNumbersNormalizesAddressBeforeLookup() {
+		final var savedStorgatan = AddressEntity.create().withId("address-1").withStreetAddress("Storgatan 1").withPostalCode("852 30");
+		final var savedHolder = LicenseHolderEntity.create().withId("holder-1").withOrgNumber("5566112233");
+		final var savedRestaurantNumber = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("1001");
+
+		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID)).thenReturn(Optional.of(savedStorgatan));
+		when(licenseHolderRepository.findByOrgNumber("5566112233")).thenReturn(Optional.of(savedHolder));
+		when(restaurantNumberRepository.findByRestaurantNumber("1001")).thenReturn(Optional.of(savedRestaurantNumber));
+
+		// "85230", "8523 0" and a double space inside the street name must all resolve to the same stored address.
+		final var csv = """
+			street_address,postal_code,postal_area,restaurant_number,org_number,holder_name,premises_name,valid_from,valid_to,status
+			Storgatan 1,85230,Sundsvall,1001,5566112233,Bolag A,Pub A,2020-01-01,2021-01-01,ENDED
+			Storgatan  1,8523 0,Sundsvall,1001,5566112233,Bolag A,Pub A,2021-01-01,2022-01-01,ENDED
+			""";
+		final var file = new MockMultipartFile("file", "import.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8));
+
+		final var importService = new ImportService(addressRepository, licenseHolderRepository, restaurantNumberRepository, restaurantNumberAssignmentRepository);
+		final var result = importService.importRestaurantNumbers(MUNICIPALITY_ID, file);
+
+		assertThat(result.addressesCreated()).isZero();
+		assertThat(result.assignmentsCreated()).isEqualTo(2);
+		assertThat(result.errors()).isEmpty();
+		verify(addressRepository, times(2)).findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID);
 	}
 
 	@Test
@@ -101,7 +166,7 @@ class ImportServiceTest {
 	void importRestaurantNumbersStripsUtf8Bom() {
 		final var savedStorgatan = AddressEntity.create().withId("address-1").withStreetAddress("Storgatan 1").withPostalCode("852 30");
 		final var savedHolder = LicenseHolderEntity.create().withId("holder-1").withOrgNumber("5566112233");
-		final var savedRestaurantNumber = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("1001").withAddress(savedStorgatan);
+		final var savedRestaurantNumber = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("1001");
 
 		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID)).thenReturn(Optional.empty());
 		when(addressRepository.save(any())).thenReturn(savedStorgatan);

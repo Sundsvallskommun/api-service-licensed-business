@@ -30,6 +30,8 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 // externally). Expected header row: street_address,postal_code,postal_area,restaurant_number,org_number,
 // holder_name,premises_name,valid_from,valid_to,status. Remove once the historical data has been imported.
 // The whole file is imported in a single transaction: if any row fails, nothing is persisted.
+// The legacy export spells the same address in several ways ("852 30" / "85230", double spaces), so street
+// address and postal code are normalized before the address lookup to avoid duplicate address rows.
 @Service
 public class ImportService {
 
@@ -78,8 +80,8 @@ public class ImportService {
 				for (final var record : parser) {
 					rowsProcessed++;
 					try {
-						final var streetAddress = record.get("street_address").trim();
-						final var postalCode = record.get("postal_code").trim();
+						final var streetAddress = normalizeStreetAddress(record.get("street_address"));
+						final var postalCode = normalizePostalCode(record.get("postal_code"));
 						final var postalArea = record.get("postal_area").trim();
 						final var restaurantNumber = record.get("restaurant_number").trim();
 						final var orgNumber = record.get("org_number").trim();
@@ -112,17 +114,14 @@ public class ImportService {
 						if (restaurantNumberEntity == null) {
 							restaurantNumberEntity = restaurantNumberRepository.save(RestaurantNumberEntity.create()
 								.withRestaurantNumber(restaurantNumber)
-								.withMunicipalityId(municipalityId)
-								.withAddress(address));
+								.withMunicipalityId(municipalityId));
 							restaurantNumbersCreated++;
-						} else if (!restaurantNumberEntity.getAddress().getId().equals(address.getId())) {
-							addError(errors, "Row %d: restaurant number '%s' is already tied to a different address, row skipped".formatted(record.getRecordNumber(), restaurantNumber));
-							continue;
 						}
 
 						restaurantNumberAssignmentRepository.save(RestaurantNumberAssignmentEntity.create()
 							.withRestaurantNumber(restaurantNumberEntity)
 							.withLicenseHolder(licenseHolder)
+							.withAddress(address)
 							.withHolderName(holderName)
 							.withPremisesName(premisesName)
 							.withValidFrom(validFrom)
@@ -143,6 +142,16 @@ public class ImportService {
 		}
 
 		return new ImportResult(rowsProcessed, addressesCreated, licenseHoldersCreated, restaurantNumbersCreated, assignmentsCreated, errors);
+	}
+
+	private static String normalizeStreetAddress(final String raw) {
+		return raw.trim().replaceAll("\\s+", " ");
+	}
+
+	// "852 30", "85230" and "8523 0" all become "852 30". Anything that is not five digits is kept as typed.
+	private static String normalizePostalCode(final String raw) {
+		final var digits = raw.replaceAll("\\s+", "");
+		return digits.matches("\\d{5}") ? digits.substring(0, 3) + " " + digits.substring(3) : digits;
 	}
 
 	private static void addError(final List<String> errors, final String message) {

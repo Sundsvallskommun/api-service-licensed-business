@@ -2,14 +2,10 @@ package se.sundsvall.licensedbusiness.integration.db.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -22,7 +18,6 @@ import static org.hibernate.annotations.TimeZoneStorageType.NORMALIZE;
 
 @Entity
 @Table(name = "restaurant_number", indexes = {
-	@Index(name = "IDX_RESTAURANT_NUMBER_ADDRESS_ID", columnList = "address_id"),
 	@Index(name = "IDX_RESTAURANT_NUMBER_MUNICIPALITY_ID", columnList = "municipality_id")
 }, uniqueConstraints = {
 	@UniqueConstraint(name = "UK_RESTAURANT_NUMBER", columnNames = {
@@ -41,10 +36,6 @@ public class RestaurantNumberEntity {
 
 	@Column(name = "municipality_id", columnDefinition = "VARCHAR(6)")
 	private String municipalityId;
-
-	@ManyToOne(optional = false, fetch = FetchType.LAZY)
-	@JoinColumn(name = "address_id", columnDefinition = "VARCHAR(36)", foreignKey = @ForeignKey(name = "FK_RESTAURANT_NUMBER_ADDRESS"))
-	private AddressEntity address;
 
 	@Column(name = "created", columnDefinition = "DATETIME")
 	@TimeZoneStorage(NORMALIZE)
@@ -98,19 +89,6 @@ public class RestaurantNumberEntity {
 		return this;
 	}
 
-	public AddressEntity getAddress() {
-		return address;
-	}
-
-	public void setAddress(AddressEntity address) {
-		this.address = address;
-	}
-
-	public RestaurantNumberEntity withAddress(AddressEntity address) {
-		this.address = address;
-		return this;
-	}
-
 	public OffsetDateTime getCreated() {
 		return created;
 	}
@@ -124,7 +102,6 @@ public class RestaurantNumberEntity {
 		return this;
 	}
 
-	// address is intentionally excluded from equals/hashCode/toString to avoid touching a lazy proxy.
 	@Override
 	public boolean equals(Object o) {
 		if (o == null || getClass() != o.getClass())

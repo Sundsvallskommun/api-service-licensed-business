@@ -6,9 +6,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanConstructor;
-import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanEqualsExcluding;
-import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanHashCodeExcluding;
-import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanToStringExcluding;
+import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanEquals;
+import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanHashCode;
+import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanToString;
 import static com.google.code.beanmatchers.BeanMatchers.hasValidGettersAndSetters;
 import static com.google.code.beanmatchers.BeanMatchers.registerValueGenerator;
 import static java.time.ZoneOffset.UTC;
@@ -34,43 +34,37 @@ class RestaurantNumberEntityTest {
 		assertThat(RestaurantNumberEntity.class, allOf(
 			hasValidBeanConstructor(),
 			hasValidGettersAndSetters(),
-			hasValidBeanHashCodeExcluding("address"),
-			hasValidBeanEqualsExcluding("address"),
-			hasValidBeanToStringExcluding("address")));
+			hasValidBeanHashCode(),
+			hasValidBeanEquals(),
+			hasValidBeanToString()));
 	}
 
 	@Test
 	void builderTest() {
-		final var address = new AddressEntity();
 		final var restaurantNumberEntity = RestaurantNumberEntity.create()
 			.withId(ID)
 			.withRestaurantNumber(RESTAURANT_NUMBER)
 			.withMunicipalityId(MUNICIPALITY_ID)
-			.withAddress(address)
 			.withCreated(CREATED);
 
 		assertThat(restaurantNumberEntity.getId()).isEqualTo(ID);
 		assertThat(restaurantNumberEntity.getRestaurantNumber()).isEqualTo(RESTAURANT_NUMBER);
 		assertThat(restaurantNumberEntity.getMunicipalityId()).isEqualTo(MUNICIPALITY_ID);
-		assertThat(restaurantNumberEntity.getAddress()).isEqualTo(address);
 		assertThat(restaurantNumberEntity.getCreated()).isEqualTo(CREATED);
 		assertThat(restaurantNumberEntity).hasNoNullFieldsOrProperties();
 	}
 
 	@Test
 	void setterAndGetterTest() {
-		final var address = new AddressEntity();
 		final var restaurantNumberEntity = new RestaurantNumberEntity();
 		restaurantNumberEntity.setId(ID);
 		restaurantNumberEntity.setRestaurantNumber(RESTAURANT_NUMBER);
 		restaurantNumberEntity.setMunicipalityId(MUNICIPALITY_ID);
-		restaurantNumberEntity.setAddress(address);
 		restaurantNumberEntity.setCreated(CREATED);
 
 		assertThat(restaurantNumberEntity.getId()).isEqualTo(ID);
 		assertThat(restaurantNumberEntity.getRestaurantNumber()).isEqualTo(RESTAURANT_NUMBER);
 		assertThat(restaurantNumberEntity.getMunicipalityId()).isEqualTo(MUNICIPALITY_ID);
-		assertThat(restaurantNumberEntity.getAddress()).isEqualTo(address);
 		assertThat(restaurantNumberEntity.getCreated()).isEqualTo(CREATED);
 		assertThat(restaurantNumberEntity).hasNoNullFieldsOrProperties();
 	}
