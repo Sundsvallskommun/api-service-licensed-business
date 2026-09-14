@@ -4,8 +4,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Objects;
 import se.sundsvall.dept44.models.api.paging.AbstractParameterPagingAndSortingBase;
+import se.sundsvall.dept44.models.api.paging.validation.ValidSortByProperty;
+import se.sundsvall.licensedbusiness.integration.db.model.AddressEntity;
 
 @Schema(description = "Address search and paging parameters")
+@ValidSortByProperty(AddressEntity.class)
 public class AddressSearchParameters extends AbstractParameterPagingAndSortingBase {
 
 	@NotBlank

@@ -96,6 +96,48 @@ class AddressResourceFailureTest {
 	}
 
 	@Test
+	void getAddressesWithInvalidSortBy() {
+		final var response = webTestClient.get()
+			.uri(builder -> builder.path(PATH).queryParam("sortBy", "unknownProperty").build(Map.of("municipalityId", MUNICIPALITY_ID)))
+			.exchange()
+			.expectStatus().isBadRequest()
+			.expectBody(ConstraintViolationProblem.class)
+			.returnResult()
+			.getResponseBody();
+
+		assertThat(response).isNotNull();
+		assertThat(response.getTitle()).isEqualTo("Constraint Violation");
+		assertThat(response.getStatus()).isEqualTo(BAD_REQUEST);
+		assertThat(response.getViolations()).singleElement().satisfies(violation -> {
+			assertThat(violation.field()).isEqualTo("addressPagingParameters");
+			assertThat(violation.message()).startsWith("One or more of the sortBy properties [unknownProperty] are not valid.");
+		});
+
+		verifyNoInteractions(addressServiceMock);
+	}
+
+	@Test
+	void searchAddressesWithInvalidSortBy() {
+		final var response = webTestClient.get()
+			.uri(builder -> builder.path(SEARCH_PATH).queryParam("query", "Storgatan").queryParam("sortBy", "unknownProperty").build(Map.of("municipalityId", MUNICIPALITY_ID)))
+			.exchange()
+			.expectStatus().isBadRequest()
+			.expectBody(ConstraintViolationProblem.class)
+			.returnResult()
+			.getResponseBody();
+
+		assertThat(response).isNotNull();
+		assertThat(response.getTitle()).isEqualTo("Constraint Violation");
+		assertThat(response.getStatus()).isEqualTo(BAD_REQUEST);
+		assertThat(response.getViolations()).singleElement().satisfies(violation -> {
+			assertThat(violation.field()).isEqualTo("addressSearchParameters");
+			assertThat(violation.message()).startsWith("One or more of the sortBy properties [unknownProperty] are not valid.");
+		});
+
+		verifyNoInteractions(addressServiceMock);
+	}
+
+	@Test
 	void searchAddressesWithoutQuery() {
 		final var response = webTestClient.get()
 			.uri(builder -> builder.path(SEARCH_PATH).build(Map.of("municipalityId", MUNICIPALITY_ID)))

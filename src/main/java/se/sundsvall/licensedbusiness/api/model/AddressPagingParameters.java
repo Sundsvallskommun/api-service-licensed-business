@@ -3,8 +3,11 @@ package se.sundsvall.licensedbusiness.api.model;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Objects;
 import se.sundsvall.dept44.models.api.paging.AbstractParameterPagingAndSortingBase;
+import se.sundsvall.dept44.models.api.paging.validation.ValidSortByProperty;
+import se.sundsvall.licensedbusiness.integration.db.model.AddressEntity;
 
 @Schema(description = "Address paging and sorting parameters")
+@ValidSortByProperty(AddressEntity.class)
 public class AddressPagingParameters extends AbstractParameterPagingAndSortingBase {
 
 	@Override
