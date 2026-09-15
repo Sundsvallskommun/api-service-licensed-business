@@ -1,40 +1,42 @@
 
     create table address (
+        municipality_id varchar(6) not null,
         created DATETIME,
-        id VARCHAR(36) not null,
-        municipality_id VARCHAR(6),
-        postal_area VARCHAR(100),
-        postal_code VARCHAR(10),
-        street_address VARCHAR(255),
+        postal_code varchar(10) not null,
+        id varchar(36) not null,
+        postal_area varchar(100),
+        street_address varchar(255) not null,
         primary key (id)
     ) engine=InnoDB;
 
     create table license_holder (
         created DATETIME,
-        id VARCHAR(36) not null,
-        name VARCHAR(255),
-        org_number VARCHAR(13),
+        org_number varchar(13) not null,
+        id varchar(36) not null,
+        name varchar(255),
         primary key (id)
     ) engine=InnoDB;
 
     create table restaurant_number (
+        municipality_id varchar(6) not null,
         created DATETIME,
-        id VARCHAR(36) not null,
-        municipality_id VARCHAR(6),
-        restaurant_number VARCHAR(20),
+        restaurant_number varchar(20) not null,
+        id varchar(36) not null,
         primary key (id)
     ) engine=InnoDB;
 
     create table restaurant_number_assignment (
-        valid_from DATE,
+        valid_from DATE not null,
         valid_to DATE,
         created DATETIME,
-        address_id VARCHAR(36) not null,
-        holder_name VARCHAR(255),
-        id VARCHAR(36) not null,
-        license_holder_id VARCHAR(36) not null,
-        premises_name VARCHAR(255),
-        restaurant_number_id VARCHAR(36) not null,
+        modified DATETIME,
+        version bigint not null,
+        address_id varchar(36) not null,
+        id varchar(36) not null,
+        license_holder_id varchar(36) not null,
+        restaurant_number_id varchar(36) not null,
+        holder_name varchar(255),
+        premises_name varchar(255),
         status VARCHAR(50),
         primary key (id)
     ) engine=InnoDB;
@@ -63,8 +65,8 @@
     create index IDX_ASSIGNMENT_ADDRESS_ID 
        on restaurant_number_assignment (address_id);
 
-    create index IDX_ASSIGNMENT_VALID_TO 
-       on restaurant_number_assignment (valid_to);
+    create index IDX_ASSIGNMENT_STATUS_VALID_TO 
+       on restaurant_number_assignment (status, valid_to);
 
     alter table if exists restaurant_number_assignment 
        add constraint FK_ASSIGNMENT_ADDRESS 

@@ -43,7 +43,7 @@ class AssignmentMapperTest {
 		assertThat(assignment.getPremisesName()).isEqualTo("Harrys Pub");
 		assertThat(assignment.getValidFrom()).isEqualTo(LocalDate.of(2024, 1, 1));
 		assertThat(assignment.getValidTo()).isEqualTo(LocalDate.of(2024, 12, 31));
-		assertThat(assignment.getStatus()).isEqualTo(AssignmentStatus.ACTIVE);
+		assertThat(assignment.getStatus()).isEqualTo("ACTIVE");
 		assertThat(assignment.getCreated()).isEqualTo(created);
 	}
 

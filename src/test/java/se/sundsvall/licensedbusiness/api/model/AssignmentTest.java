@@ -5,7 +5,6 @@ import java.time.OffsetDateTime;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import se.sundsvall.licensedbusiness.integration.db.model.enums.AssignmentStatus;
 
 import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanConstructor;
 import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanEquals;
@@ -25,7 +24,7 @@ class AssignmentTest {
 	private static final String PREMISES_NAME = "Harrys Pub";
 	private static final LocalDate VALID_FROM = LocalDate.of(2024, 1, 1);
 	private static final LocalDate VALID_TO = LocalDate.of(2024, 12, 31);
-	private static final AssignmentStatus STATUS = AssignmentStatus.ACTIVE;
+	private static final String STATUS = "ACTIVE";
 	private static final OffsetDateTime CREATED = OffsetDateTime.of(2024, 6, 15, 12, 0, 0, 0, UTC);
 	private static final AtomicInteger SEQUENCE = new AtomicInteger();
 

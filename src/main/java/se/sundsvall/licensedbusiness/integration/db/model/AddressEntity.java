@@ -28,19 +28,19 @@ public class AddressEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.UUID)
-	@Column(name = "id", columnDefinition = "VARCHAR(36)")
+	@Column(name = "id", nullable = false, length = 36)
 	private String id;
 
-	@Column(name = "street_address", columnDefinition = "VARCHAR(255)")
+	@Column(name = "street_address", nullable = false, length = 255)
 	private String streetAddress;
 
-	@Column(name = "postal_code", columnDefinition = "VARCHAR(10)")
+	@Column(name = "postal_code", nullable = false, length = 10)
 	private String postalCode;
 
-	@Column(name = "postal_area", columnDefinition = "VARCHAR(100)")
+	@Column(name = "postal_area", length = 100)
 	private String postalArea;
 
-	@Column(name = "municipality_id", columnDefinition = "VARCHAR(6)")
+	@Column(name = "municipality_id", nullable = false, length = 6)
 	private String municipalityId;
 
 	@Column(name = "created", columnDefinition = "DATETIME")

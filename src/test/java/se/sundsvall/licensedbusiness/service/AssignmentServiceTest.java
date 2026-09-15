@@ -8,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.OptimisticLockingFailureException;
 import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.licensedbusiness.api.model.AssignmentCreateRequest;
 import se.sundsvall.licensedbusiness.api.model.AssignmentUpdateRequest;
@@ -32,6 +33,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static se.sundsvall.licensedbusiness.integration.db.model.enums.AssignmentStatus.ACTIVE;
 import static se.sundsvall.licensedbusiness.integration.db.model.enums.AssignmentStatus.ENDED;
@@ -304,12 +306,12 @@ class AssignmentServiceTest {
 			.withValidFrom(LocalDate.of(2020, 1, 1))
 			.withStatus(ACTIVE);
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(entity));
-		when(restaurantNumberAssignmentRepository.save(entity)).thenReturn(entity);
+		when(restaurantNumberAssignmentRepository.saveAndFlush(entity)).thenReturn(entity);
 
 		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2020, 12, 31)));
 
 		assertThat(result.getValidTo()).isEqualTo(LocalDate.of(2020, 12, 31));
-		assertThat(result.getStatus()).isEqualTo(ENDED);
+		assertThat(result.getStatus()).isEqualTo(ENDED.name());
 	}
 
 	@Test
@@ -321,13 +323,13 @@ class AssignmentServiceTest {
 			.withValidTo(LocalDate.of(2020, 12, 31))
 			.withStatus(ENDED);
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(entity));
-		when(restaurantNumberAssignmentRepository.save(entity)).thenReturn(entity);
+		when(restaurantNumberAssignmentRepository.saveAndFlush(entity)).thenReturn(entity);
 
 		final var future = LocalDate.now().plusYears(1);
 		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(future));
 
 		assertThat(result.getValidTo()).isEqualTo(future);
-		assertThat(result.getStatus()).isEqualTo(ACTIVE);
+		assertThat(result.getStatus()).isEqualTo(ACTIVE.name());
 	}
 
 	@Test
@@ -340,14 +342,14 @@ class AssignmentServiceTest {
 			.withValidFrom(LocalDate.of(2020, 1, 1))
 			.withStatus(ACTIVE);
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(entity));
-		when(restaurantNumberAssignmentRepository.save(entity)).thenReturn(entity);
+		when(restaurantNumberAssignmentRepository.saveAndFlush(entity)).thenReturn(entity);
 
 		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withPremisesName("Ny lokal"));
 
 		assertThat(result.getPremisesName()).isEqualTo("Ny lokal");
 		assertThat(result.getHolderName()).isEqualTo("Gammalt namn");
 		assertThat(result.getValidTo()).isNull();
-		assertThat(result.getStatus()).isEqualTo(ACTIVE);
+		assertThat(result.getStatus()).isEqualTo(ACTIVE.name());
 	}
 
 	@Test
@@ -366,7 +368,26 @@ class AssignmentServiceTest {
 			.isInstanceOf(Problem.class)
 			.hasMessageContaining("validTo must not be before validFrom")
 			.extracting("status").isEqualTo(BAD_REQUEST);
-		verify(restaurantNumberAssignmentRepository, never()).save(any());
+		verify(restaurantNumberAssignmentRepository, never()).saveAndFlush(any());
+	}
+
+	@Test
+	void updateAssignmentWhenAnotherWriterAlreadyChangedIt() {
+		final var entity = RestaurantNumberAssignmentEntity.create()
+			.withId(ASSIGNMENT_ID)
+			.withRestaurantNumber(restaurantNumberEntity())
+			.withValidFrom(LocalDate.of(2020, 1, 1))
+			.withStatus(ACTIVE);
+		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(entity));
+		when(restaurantNumberAssignmentRepository.saveAndFlush(entity)).thenThrow(new OptimisticLockingFailureException("conflict"));
+
+		final var assignmentService = assignmentService();
+		final var request = AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2020, 12, 31));
+
+		assertThatThrownBy(() -> assignmentService.updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, request))
+			.isInstanceOf(Problem.class)
+			.hasMessageContaining("Assignment " + ASSIGNMENT_ID + " was updated by someone else")
+			.extracting("status").isEqualTo(CONFLICT);
 	}
 
 	@Test
@@ -553,12 +574,12 @@ class AssignmentServiceTest {
 			.withStatus(ACTIVE);
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(entity));
 		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatus(restaurantNumber, ACTIVE)).thenReturn(List.of(entity));
-		when(restaurantNumberAssignmentRepository.save(entity)).thenReturn(entity);
+		when(restaurantNumberAssignmentRepository.saveAndFlush(entity)).thenReturn(entity);
 
 		final var future = LocalDate.now().plusYears(1);
 		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(future));
 
 		assertThat(result.getValidTo()).isEqualTo(future);
-		assertThat(result.getStatus()).isEqualTo(ACTIVE);
+		assertThat(result.getStatus()).isEqualTo(ACTIVE.name());
 	}
 }

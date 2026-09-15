@@ -28,13 +28,13 @@ public class RestaurantNumberEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.UUID)
-	@Column(name = "id", columnDefinition = "VARCHAR(36)")
+	@Column(name = "id", nullable = false, length = 36)
 	private String id;
 
-	@Column(name = "restaurant_number", columnDefinition = "VARCHAR(20)")
+	@Column(name = "restaurant_number", nullable = false, length = 20)
 	private String restaurantNumber;
 
-	@Column(name = "municipality_id", columnDefinition = "VARCHAR(6)")
+	@Column(name = "municipality_id", nullable = false, length = 6)
 	private String municipalityId;
 
 	@Column(name = "created", columnDefinition = "DATETIME")

@@ -25,13 +25,13 @@ public class LicenseHolderEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.UUID)
-	@Column(name = "id", columnDefinition = "VARCHAR(36)")
+	@Column(name = "id", nullable = false, length = 36)
 	private String id;
 
-	@Column(name = "org_number", columnDefinition = "VARCHAR(13)")
+	@Column(name = "org_number", nullable = false, length = 13)
 	private String orgNumber;
 
-	@Column(name = "name", columnDefinition = "VARCHAR(255)")
+	@Column(name = "name", length = 255)
 	private String name;
 
 	@Column(name = "created", columnDefinition = "DATETIME")
