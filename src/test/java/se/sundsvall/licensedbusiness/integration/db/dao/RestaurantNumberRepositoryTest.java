@@ -45,7 +45,7 @@ class RestaurantNumberRepositoryTest {
 		final var atOldAddress = restaurantNumberRepository.findAvailableByMunicipalityIdAndAddressId(MUNICIPALITY_ID, "address-1");
 		final var atNewAddress = restaurantNumberRepository.findAvailableByMunicipalityIdAndAddressId(MUNICIPALITY_ID, "address-6");
 
-		assertThat(atOldAddress).extracting("id").doesNotContain("rn-3");
+		assertThat(atOldAddress).extracting("id").isNotEmpty().doesNotContain("rn-3");
 		assertThat(atNewAddress).extracting("id").contains("rn-3");
 	}
 
@@ -61,8 +61,8 @@ class RestaurantNumberRepositoryTest {
 		final var atAddress1 = restaurantNumberRepository.findAvailableByMunicipalityIdAndAddressId(MUNICIPALITY_ID, "address-1");
 		final var atAddress6 = restaurantNumberRepository.findAvailableByMunicipalityIdAndAddressId(MUNICIPALITY_ID, "address-6");
 
-		assertThat(atAddress1).extracting("id").doesNotContain("rn-5");
-		assertThat(atAddress6).extracting("id").doesNotContain("rn-5");
+		assertThat(atAddress1).extracting("id").isNotEmpty().doesNotContain("rn-5");
+		assertThat(atAddress6).extracting("id").isNotEmpty().doesNotContain("rn-5");
 	}
 
 	@Test
