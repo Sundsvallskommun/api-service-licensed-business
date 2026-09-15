@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Objects;
-import se.sundsvall.licensedbusiness.integration.db.model.enums.AssignmentStatus;
 
 @Schema(description = "Assignment model, describing a restaurant number assigned to a license holder at an address")
 public class Assignment {
@@ -33,8 +32,8 @@ public class Assignment {
 	@Schema(description = "Last day the assignment is valid, null if open ended", examples = "2024-12-31")
 	private LocalDate validTo;
 
-	@Schema(description = "Assignment status")
-	private AssignmentStatus status;
+	@Schema(description = "Assignment status", examples = "ACTIVE")
+	private String status;
 
 	@Schema(description = "Timestamp when the assignment was created")
 	private OffsetDateTime created;
@@ -147,15 +146,15 @@ public class Assignment {
 		return this;
 	}
 
-	public AssignmentStatus getStatus() {
+	public String getStatus() {
 		return status;
 	}
 
-	public void setStatus(AssignmentStatus status) {
+	public void setStatus(String status) {
 		this.status = status;
 	}
 
-	public Assignment withStatus(AssignmentStatus status) {
+	public Assignment withStatus(String status) {
 		this.status = status;
 		return this;
 	}
@@ -180,7 +179,7 @@ public class Assignment {
 		Assignment that = (Assignment) o;
 		return Objects.equals(id, that.id) && Objects.equals(restaurantNumber, that.restaurantNumber) && Objects.equals(address, that.address) && Objects.equals(licenseHolder, that.licenseHolder)
 			&& Objects.equals(holderName, that.holderName) && Objects.equals(premisesName, that.premisesName) && Objects.equals(validFrom, that.validFrom) && Objects.equals(validTo, that.validTo)
-			&& status == that.status && Objects.equals(created, that.created);
+			&& Objects.equals(status, that.status) && Objects.equals(created, that.created);
 	}
 
 	@Override
@@ -199,7 +198,7 @@ public class Assignment {
 			", premisesName='" + premisesName + '\'' +
 			", validFrom=" + validFrom +
 			", validTo=" + validTo +
-			", status=" + status +
+			", status='" + status + '\'' +
 			", created=" + created +
 			'}';
 	}

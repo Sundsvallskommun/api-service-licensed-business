@@ -1,14 +1,14 @@
 package se.sundsvall.licensedbusiness.integration.db.dao;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 import se.sundsvall.licensedbusiness.integration.db.model.RestaurantNumberEntity;
 
-@Repository
+@CircuitBreaker(name = "restaurantNumberRepository")
 public interface RestaurantNumberRepository extends JpaRepository<RestaurantNumberEntity, String> {
 	Optional<RestaurantNumberEntity> findByRestaurantNumber(String restaurantNumber);
 

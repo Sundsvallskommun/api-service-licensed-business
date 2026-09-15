@@ -125,4 +125,17 @@ class RestaurantNumberAssignmentRepositoryTest {
 
 		assertThat(active).isEmpty();
 	}
+
+	@Test
+	void updateBumpsVersionAndSetsModified() {
+		final var assignment = restaurantNumberAssignmentRepository.findById("assignment-1").orElseThrow();
+		final var versionBeforeUpdate = assignment.getVersion();
+		assertThat(assignment.getModified()).isNull();
+
+		assignment.setPremisesName("Ny lokal");
+		restaurantNumberAssignmentRepository.saveAndFlush(assignment);
+
+		assertThat(assignment.getVersion()).isEqualTo(versionBeforeUpdate + 1);
+		assertThat(assignment.getModified()).isNotNull();
+	}
 }

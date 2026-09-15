@@ -31,7 +31,7 @@ public class AssignmentMapper {
 				.withPremisesName(e.getPremisesName())
 				.withValidFrom(e.getValidFrom())
 				.withValidTo(e.getValidTo())
-				.withStatus(e.getStatus())
+				.withStatus(Optional.ofNullable(e.getStatus()).map(Enum::name).orElse(null))
 				.withCreated(e.getCreated()))
 			.orElse(null);
 	}

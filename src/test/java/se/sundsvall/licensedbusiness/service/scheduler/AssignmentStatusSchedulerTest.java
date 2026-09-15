@@ -4,7 +4,6 @@ import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import se.sundsvall.licensedbusiness.integration.db.dao.RestaurantNumberAssignmentRepository;
@@ -14,8 +13,8 @@ import se.sundsvall.licensedbusiness.integration.db.model.enums.AssignmentStatus
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,10 +34,9 @@ class AssignmentStatusSchedulerTest {
 		final var scheduler = new AssignmentStatusScheduler(restaurantNumberAssignmentRepository);
 		scheduler.updateExpiredAssignmentStatus();
 
-		final var captor = ArgumentCaptor.forClass(RestaurantNumberAssignmentEntity.class);
-		verify(restaurantNumberAssignmentRepository, times(2)).save(captor.capture());
-		assertThat(captor.getAllValues()).extracting(RestaurantNumberAssignmentEntity::getId).containsExactlyInAnyOrder("1", "2");
-		assertThat(captor.getAllValues()).allSatisfy(entity -> assertThat(entity.getStatus()).isEqualTo(AssignmentStatus.ENDED));
+		assertThat(List.of(expired1, expired2)).allSatisfy(entity -> assertThat(entity.getStatus()).isEqualTo(AssignmentStatus.ENDED));
+		verify(restaurantNumberAssignmentRepository).findAllByStatusAndValidToBefore(eq(AssignmentStatus.ACTIVE), any());
+		verifyNoMoreInteractions(restaurantNumberAssignmentRepository);
 	}
 
 	@Test
@@ -49,6 +47,7 @@ class AssignmentStatusSchedulerTest {
 		final var scheduler = new AssignmentStatusScheduler(restaurantNumberAssignmentRepository);
 		scheduler.updateExpiredAssignmentStatus();
 
-		verify(restaurantNumberAssignmentRepository, times(0)).save(any());
+		verify(restaurantNumberAssignmentRepository).findAllByStatusAndValidToBefore(eq(AssignmentStatus.ACTIVE), any());
+		verifyNoMoreInteractions(restaurantNumberAssignmentRepository);
 	}
 }
