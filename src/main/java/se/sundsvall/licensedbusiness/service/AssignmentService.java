@@ -19,9 +19,9 @@ import se.sundsvall.licensedbusiness.service.mapper.AssignmentMapper;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
-import static se.sundsvall.dept44.util.LogUtils.sanitizeForLogging;
 import static se.sundsvall.licensedbusiness.integration.db.model.enums.AssignmentStatus.ACTIVE;
 import static se.sundsvall.licensedbusiness.service.AssignmentStatusResolver.resolveStatus;
+import static se.sundsvall.licensedbusiness.service.TextSanitizer.sanitize;
 
 @Service
 public class AssignmentService {
@@ -47,17 +47,17 @@ public class AssignmentService {
 
 	public Assignment getLatestAssignment(final String municipalityId, final String restaurantNumber) {
 		final var restaurantNumberEntity = restaurantNumberRepository.findByRestaurantNumberAndMunicipalityId(restaurantNumber, municipalityId)
-			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Restaurant number %s not found".formatted(sanitizeForLogging(restaurantNumber))));
+			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Restaurant number %s not found".formatted(sanitize(restaurantNumber))));
 
 		return restaurantNumberAssignmentRepository.findFirstByRestaurantNumberOrderByValidFromDescCreatedDesc(restaurantNumberEntity)
 			.map(assignmentMapper::toAssignment)
-			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "No assignment found for restaurant number %s".formatted(sanitizeForLogging(restaurantNumber))));
+			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "No assignment found for restaurant number %s".formatted(sanitize(restaurantNumber))));
 	}
 
 	public Assignment getAssignment(final String municipalityId, final String assignmentId) {
 		return restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(assignmentId, municipalityId)
 			.map(assignmentMapper::toAssignment)
-			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Assignment %s not found".formatted(sanitizeForLogging(assignmentId))));
+			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Assignment %s not found".formatted(sanitize(assignmentId))));
 	}
 
 	@Transactional
@@ -65,17 +65,18 @@ public class AssignmentService {
 		validateValidToNotBeforeValidFrom(request.getValidFrom(), request.getValidTo());
 
 		final var restaurantNumber = restaurantNumberRepository.findByIdAndMunicipalityId(request.getRestaurantNumberId(), municipalityId)
-			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Restaurant number with ID %s not found".formatted(sanitizeForLogging(request.getRestaurantNumberId()))));
+			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Restaurant number with ID %s not found".formatted(sanitize(request.getRestaurantNumberId()))));
 		final var address = addressRepository.findById(request.getAddressId())
 			.filter(entity -> municipalityId.equals(entity.getMunicipalityId()))
-			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Address %s not found".formatted(sanitizeForLogging(request.getAddressId()))));
+			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Address %s not found".formatted(sanitize(request.getAddressId()))));
 
-		final var licenseHolder = licenseHolderRepository.findByOrgNumber(request.getOrgNumber())
+		final var orgNumber = OrgNumberNormalizer.normalize(request.getOrgNumber());
+		final var licenseHolder = licenseHolderRepository.findByOrgNumber(orgNumber)
 			.orElseGet(() -> licenseHolderRepository.save(LicenseHolderEntity.create()
-				.withOrgNumber(request.getOrgNumber())
+				.withOrgNumber(orgNumber)
 				.withName(request.getHolderName())));
 
-		endCurrentAssignments(restaurantNumber, request.getValidFrom());
+		endOverlappingAssignmentsOrReject(restaurantNumber, request.getValidFrom(), request.getValidTo());
 
 		return restaurantNumberAssignmentRepository.save(RestaurantNumberAssignmentEntity.create()
 			.withRestaurantNumber(restaurantNumber)
@@ -92,7 +93,7 @@ public class AssignmentService {
 	@Transactional
 	public Assignment updateAssignment(final String municipalityId, final String assignmentId, final AssignmentUpdateRequest request) {
 		final var entity = restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(assignmentId, municipalityId)
-			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Assignment %s not found".formatted(sanitizeForLogging(assignmentId))));
+			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Assignment %s not found".formatted(sanitize(assignmentId))));
 
 		Optional.ofNullable(request.getValidTo()).ifPresent(entity::setValidTo);
 		Optional.ofNullable(request.getPremisesName()).ifPresent(entity::setPremisesName);
@@ -109,24 +110,28 @@ public class AssignmentService {
 		return assignmentMapper.toAssignment(restaurantNumberAssignmentRepository.save(entity));
 	}
 
-	private void endCurrentAssignments(final RestaurantNumberEntity restaurantNumber, final LocalDate newValidFrom) {
+	private void endOverlappingAssignmentsOrReject(final RestaurantNumberEntity restaurantNumber, final LocalDate newValidFrom, final LocalDate newValidTo) {
+		final var newAssignmentTakesOver = resolveStatus(newValidTo) == ACTIVE;
 		final var lastValidDay = newValidFrom.minusDays(1);
 
-		restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatus(restaurantNumber, ACTIVE)
+		restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber).stream()
+			.filter(current -> overlaps(current, newValidFrom, newValidTo))
 			.forEach(current -> {
-				if (!current.getValidFrom().isBefore(newValidFrom)) {
-					throw Problem.valueOf(BAD_REQUEST, "The restaurant number has an active assignment starting on " + current.getValidFrom() + ", which is not before " + newValidFrom);
+				if (!newAssignmentTakesOver || !current.getValidFrom().isBefore(newValidFrom)) {
+					throw Problem.valueOf(BAD_REQUEST, "The period %s to %s overlaps assignment %s, which runs from %s to %s".formatted(
+						newValidFrom, newValidTo, sanitize(current.getId()), current.getValidFrom(), current.getValidTo()));
 				}
-				if (runsPast(current, lastValidDay)) {
-					current.setValidTo(lastValidDay);
-					current.setStatus(resolveStatus(lastValidDay));
-					restaurantNumberAssignmentRepository.save(current);
-				}
+				current.setValidTo(lastValidDay);
+				current.setStatus(resolveStatus(lastValidDay));
+				restaurantNumberAssignmentRepository.save(current);
 			});
 	}
 
-	private static boolean runsPast(final RestaurantNumberAssignmentEntity assignment, final LocalDate day) {
-		return (assignment.getValidTo() == null) || assignment.getValidTo().isAfter(day);
+	private static boolean overlaps(final RestaurantNumberAssignmentEntity assignment, final LocalDate from, final LocalDate to) {
+		final var startsBeforeTheNewPeriodEnds = (to == null) || !assignment.getValidFrom().isAfter(to);
+		final var endsAfterTheNewPeriodStarts = (assignment.getValidTo() == null) || !assignment.getValidTo().isBefore(from);
+
+		return startsBeforeTheNewPeriodEnds && endsAfterTheNewPeriodStarts;
 	}
 
 	private void validateNoOtherActiveAssignment(final RestaurantNumberAssignmentEntity assignment) {
@@ -135,7 +140,7 @@ public class AssignmentService {
 			.findFirst()
 			.ifPresent(other -> {
 				throw Problem.valueOf(BAD_REQUEST, "Restaurant number %s already has an active assignment with ID %s".formatted(
-					sanitizeForLogging(assignment.getRestaurantNumber().getRestaurantNumber()), sanitizeForLogging(other.getId())));
+					sanitize(assignment.getRestaurantNumber().getRestaurantNumber()), sanitize(other.getId())));
 			});
 	}
 

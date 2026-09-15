@@ -16,7 +16,7 @@ import se.sundsvall.licensedbusiness.service.mapper.RestaurantNumberMapper;
 import static java.util.stream.Collectors.toSet;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
-import static se.sundsvall.dept44.util.LogUtils.sanitizeForLogging;
+import static se.sundsvall.licensedbusiness.service.TextSanitizer.sanitize;
 
 @Service
 public class RestaurantNumberService {
@@ -42,7 +42,7 @@ public class RestaurantNumberService {
 	public RestaurantNumber getRestaurantNumber(final String municipalityId, final String restaurantNumber) {
 		return restaurantNumberRepository.findByRestaurantNumberAndMunicipalityId(restaurantNumber, municipalityId)
 			.map(restaurantNumberMapper::toRestaurantNumber)
-			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Restaurant number %s not found".formatted(sanitizeForLogging(restaurantNumber))));
+			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Restaurant number %s not found".formatted(sanitize(restaurantNumber))));
 	}
 
 	public String createRestaurantNumber(final String municipalityId) {
@@ -53,7 +53,7 @@ public class RestaurantNumberService {
 			}
 		}
 
-		throw Problem.valueOf(CONFLICT, "Could not allocate a restaurant number for municipality %s, please try again".formatted(sanitizeForLogging(municipalityId)));
+		throw Problem.valueOf(CONFLICT, "Could not allocate a restaurant number for municipality %s, please try again".formatted(sanitize(municipalityId)));
 	}
 
 	private Optional<String> allocateNextFreeRestaurantNumber(final String municipalityId) {
@@ -76,7 +76,7 @@ public class RestaurantNumberService {
 			.filter(sequence -> !used.contains(sequence))
 			.mapToObj(sequence -> municipalityId + SEQUENCE_FORMAT.formatted(sequence))
 			.findFirst()
-			.orElseThrow(() -> Problem.valueOf(CONFLICT, "No free restaurant number is available for municipality %s".formatted(sanitizeForLogging(municipalityId))));
+			.orElseThrow(() -> Problem.valueOf(CONFLICT, "No free restaurant number is available for municipality %s".formatted(sanitize(municipalityId))));
 	}
 
 	private Set<Integer> usedSequences(final String municipalityId) {
@@ -89,7 +89,7 @@ public class RestaurantNumberService {
 
 	public List<RestaurantNumber> getAvailableRestaurantNumbers(final String municipalityId, final String addressId) {
 		if (!addressRepository.existsByIdAndMunicipalityId(addressId, municipalityId)) {
-			throw Problem.valueOf(NOT_FOUND, "Address %s not found".formatted(sanitizeForLogging(addressId)));
+			throw Problem.valueOf(NOT_FOUND, "Address %s not found".formatted(sanitize(addressId)));
 		}
 
 		final var entities = restaurantNumberRepository.findAvailableByMunicipalityIdAndAddressId(municipalityId, addressId);

@@ -25,9 +25,9 @@ import se.sundsvall.licensedbusiness.integration.db.model.RestaurantNumberEntity
 import se.sundsvall.licensedbusiness.integration.db.model.enums.AssignmentStatus;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static se.sundsvall.dept44.util.LogUtils.sanitizeForLogging;
 import static se.sundsvall.licensedbusiness.service.AddressNormalizer.normalizePostalCode;
 import static se.sundsvall.licensedbusiness.service.AddressNormalizer.normalizeStreetAddress;
+import static se.sundsvall.licensedbusiness.service.TextSanitizer.sanitize;
 
 @Service
 public class ImportService {
@@ -81,7 +81,7 @@ public class ImportService {
 						final var postalCode = normalizePostalCode(record.get("postal_code"));
 						final var postalArea = record.get("postal_area").trim();
 						final var restaurantNumber = record.get("restaurant_number").trim();
-						final var orgNumber = record.get("org_number").trim();
+						final var orgNumber = OrgNumberNormalizer.normalize(record.get("org_number"));
 						final var holderName = record.get("holder_name").trim();
 						final var premisesName = record.get("premises_name").trim();
 						final var validFrom = LocalDate.parse(record.get("valid_from").trim());
@@ -126,12 +126,12 @@ public class ImportService {
 							.withStatus(status));
 						assignmentsCreated++;
 					} catch (final Exception e) {
-						addError(errors, "Row %d: %s".formatted(record.getRecordNumber(), sanitizeForLogging(e.getMessage())));
+						addError(errors, "Row %d: %s".formatted(record.getRecordNumber(), sanitize(e.getMessage())));
 					}
 				}
 			}
 		} catch (final IOException e) {
-			throw Problem.valueOf(BAD_REQUEST, "Could not read CSV file: %s".formatted(sanitizeForLogging(e.getMessage())));
+			throw Problem.valueOf(BAD_REQUEST, "Could not read CSV file: %s".formatted(sanitize(e.getMessage())));
 		}
 
 		if (!errors.isEmpty()) {

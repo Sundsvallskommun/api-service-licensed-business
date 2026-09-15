@@ -102,6 +102,22 @@ class RestaurantNumberAssignmentRepositoryTest {
 	}
 
 	@Test
+	void findAllByRestaurantNumberReturnsEndedAssignmentsToo() {
+		final var restaurantNumber = restaurantNumberRepository.findById("rn-1").orElseThrow();
+
+		final var all = restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber);
+
+		assertThat(all).extracting("id").containsExactlyInAnyOrder("assignment-1", "assignment-2");
+	}
+
+	@Test
+	void findAllByRestaurantNumberWithoutAssignment() {
+		final var restaurantNumber = restaurantNumberRepository.findById("rn-5").orElseThrow();
+
+		assertThat(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).isEmpty();
+	}
+
+	@Test
 	void findAllByRestaurantNumberAndStatusWithNoActiveAssignment() {
 		final var restaurantNumber = restaurantNumberRepository.findById("rn-3").orElseThrow();
 

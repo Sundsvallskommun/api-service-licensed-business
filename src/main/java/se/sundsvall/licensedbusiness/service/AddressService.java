@@ -19,9 +19,9 @@ import se.sundsvall.licensedbusiness.service.mapper.AddressMapper;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
-import static se.sundsvall.dept44.util.LogUtils.sanitizeForLogging;
 import static se.sundsvall.licensedbusiness.service.AddressNormalizer.normalizePostalCode;
 import static se.sundsvall.licensedbusiness.service.AddressNormalizer.normalizeStreetAddress;
+import static se.sundsvall.licensedbusiness.service.TextSanitizer.sanitize;
 
 @Service
 public class AddressService {
@@ -42,7 +42,7 @@ public class AddressService {
 
 		addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId(streetAddress, postalCode, municipalityId)
 			.ifPresent(existing -> {
-				throw Problem.valueOf(CONFLICT, "Address %s, %s already exists with ID %s".formatted(sanitizeForLogging(streetAddress), sanitizeForLogging(postalCode), sanitizeForLogging(existing.getId())));
+				throw Problem.valueOf(CONFLICT, "Address %s, %s already exists with ID %s".formatted(sanitize(streetAddress), sanitize(postalCode), sanitize(existing.getId())));
 			});
 
 		return addressRepository.save(AddressEntity.create()
@@ -57,7 +57,7 @@ public class AddressService {
 		return addressRepository.findById(addressId)
 			.filter(entity -> municipalityId.equals(entity.getMunicipalityId()))
 			.map(addressMapper::toAddress)
-			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Address %s not found".formatted(sanitizeForLogging(addressId))));
+			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Address %s not found".formatted(sanitize(addressId))));
 	}
 
 	public Addresses getAddresses(final String municipalityId, final AddressPagingParameters pagingParameters) {

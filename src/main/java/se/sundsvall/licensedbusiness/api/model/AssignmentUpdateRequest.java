@@ -1,6 +1,7 @@
 package se.sundsvall.licensedbusiness.api.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Pattern;
 import java.time.LocalDate;
 import java.util.Objects;
 
@@ -15,7 +16,8 @@ public class AssignmentUpdateRequest {
 	@Schema(description = "Name of the premises", examples = "Harrys Pub")
 	private String premisesName;
 
-	@Schema(description = "Name of the license holder as registered for this assignment", examples = "Restaurang i Sundsvall AB")
+	@Pattern(regexp = ".*\\S.*", message = "must not be blank")
+	@Schema(description = "Name of the license holder as registered for this assignment, omit to leave it unchanged", examples = "Restaurang i Sundsvall AB")
 	private String holderName;
 
 	public static AssignmentUpdateRequest create() {

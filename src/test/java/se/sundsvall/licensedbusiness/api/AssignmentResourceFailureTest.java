@@ -13,6 +13,7 @@ import se.sundsvall.dept44.problem.violations.ConstraintViolationProblem;
 import se.sundsvall.dept44.problem.violations.Violation;
 import se.sundsvall.licensedbusiness.Application;
 import se.sundsvall.licensedbusiness.api.model.AssignmentCreateRequest;
+import se.sundsvall.licensedbusiness.api.model.AssignmentUpdateRequest;
 import se.sundsvall.licensedbusiness.service.AssignmentService;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -88,6 +89,27 @@ class AssignmentResourceFailureTest {
 		assertThat(response.getViolations())
 			.extracting(Violation::field, Violation::message)
 			.containsExactly(tuple("createAssignment.municipalityId", "not a valid municipality ID"));
+
+		verifyNoInteractions(assignmentServiceMock);
+	}
+
+	@Test
+	void updateAssignmentWithBlankHolderName() {
+		final var response = webTestClient.patch()
+			.uri(builder -> builder.path(PATH + "/{assignmentId}").build(Map.of("municipalityId", MUNICIPALITY_ID, "assignmentId", "assignment-1")))
+			.contentType(APPLICATION_JSON)
+			.bodyValue(AssignmentUpdateRequest.create().withHolderName("   "))
+			.exchange()
+			.expectStatus().isBadRequest()
+			.expectBody(ConstraintViolationProblem.class)
+			.returnResult()
+			.getResponseBody();
+
+		assertThat(response).isNotNull();
+		assertThat(response.getStatus()).isEqualTo(BAD_REQUEST);
+		assertThat(response.getViolations())
+			.extracting(Violation::field, Violation::message)
+			.containsExactly(tuple("holderName", "must not be blank"));
 
 		verifyNoInteractions(assignmentServiceMock);
 	}
