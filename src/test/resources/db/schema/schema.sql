@@ -19,7 +19,6 @@
 
     create table restaurant_number (
         created DATETIME,
-        address_id VARCHAR(36) not null,
         id VARCHAR(36) not null,
         municipality_id VARCHAR(6),
         restaurant_number VARCHAR(20),
@@ -30,6 +29,7 @@
         valid_from DATE,
         valid_to DATE,
         created DATETIME,
+        address_id VARCHAR(36) not null,
         holder_name VARCHAR(255),
         id VARCHAR(36) not null,
         license_holder_id VARCHAR(36) not null,
@@ -48,9 +48,6 @@
     alter table if exists license_holder 
        add constraint UK_LICENSE_HOLDER_ORG_NUMBER unique (org_number);
 
-    create index IDX_RESTAURANT_NUMBER_ADDRESS_ID 
-       on restaurant_number (address_id);
-
     create index IDX_RESTAURANT_NUMBER_MUNICIPALITY_ID 
        on restaurant_number (municipality_id);
 
@@ -63,11 +60,14 @@
     create index IDX_ASSIGNMENT_LICENSE_HOLDER_ID 
        on restaurant_number_assignment (license_holder_id);
 
+    create index IDX_ASSIGNMENT_ADDRESS_ID 
+       on restaurant_number_assignment (address_id);
+
     create index IDX_ASSIGNMENT_VALID_TO 
        on restaurant_number_assignment (valid_to);
 
-    alter table if exists restaurant_number 
-       add constraint FK_RESTAURANT_NUMBER_ADDRESS 
+    alter table if exists restaurant_number_assignment 
+       add constraint FK_ASSIGNMENT_ADDRESS 
        foreign key (address_id) 
        references address (id);
 

@@ -25,7 +25,6 @@ CREATE TABLE restaurant_number
     id                VARCHAR(36) NOT NULL,
     restaurant_number VARCHAR(20) NOT NULL,
     municipality_id   VARCHAR(6)  NOT NULL,
-    address_id        VARCHAR(36) NOT NULL,
     created           datetime    NULL,
     CONSTRAINT PK_RESTAURANT_NUMBER PRIMARY KEY (id),
     CONSTRAINT UK_RESTAURANT_NUMBER UNIQUE (restaurant_number)
@@ -36,6 +35,7 @@ CREATE TABLE restaurant_number_assignment
     id                    VARCHAR(36)  NOT NULL,
     restaurant_number_id VARCHAR(36)  NOT NULL,
     license_holder_id    VARCHAR(36)  NOT NULL,
+    address_id            VARCHAR(36)  NOT NULL,
     holder_name           VARCHAR(255) NULL,
     premises_name         VARCHAR(255) NULL,
     valid_from             date         NOT NULL,
@@ -44,11 +44,6 @@ CREATE TABLE restaurant_number_assignment
     created                datetime     NULL,
     CONSTRAINT PK_RESTAURANT_NUMBER_ASSIGNMENT PRIMARY KEY (id)
 );
-
-ALTER TABLE restaurant_number
-    ADD CONSTRAINT FK_RESTAURANT_NUMBER_ADDRESS FOREIGN KEY (address_id) REFERENCES address (id);
-
-CREATE INDEX IDX_RESTAURANT_NUMBER_ADDRESS_ID ON restaurant_number (address_id);
 
 CREATE INDEX IDX_RESTAURANT_NUMBER_MUNICIPALITY_ID ON restaurant_number (municipality_id);
 
@@ -63,5 +58,10 @@ ALTER TABLE restaurant_number_assignment
     ADD CONSTRAINT FK_ASSIGNMENT_LICENSE_HOLDER FOREIGN KEY (license_holder_id) REFERENCES license_holder (id);
 
 CREATE INDEX IDX_ASSIGNMENT_LICENSE_HOLDER_ID ON restaurant_number_assignment (license_holder_id);
+
+ALTER TABLE restaurant_number_assignment
+    ADD CONSTRAINT FK_ASSIGNMENT_ADDRESS FOREIGN KEY (address_id) REFERENCES address (id);
+
+CREATE INDEX IDX_ASSIGNMENT_ADDRESS_ID ON restaurant_number_assignment (address_id);
 
 CREATE INDEX IDX_ASSIGNMENT_VALID_TO ON restaurant_number_assignment (valid_to);

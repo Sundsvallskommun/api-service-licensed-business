@@ -27,6 +27,7 @@ import static org.hibernate.annotations.TimeZoneStorageType.NORMALIZE;
 @Table(name = "restaurant_number_assignment", indexes = {
 	@Index(name = "IDX_ASSIGNMENT_RESTAURANT_NUMBER_ID", columnList = "restaurant_number_id"),
 	@Index(name = "IDX_ASSIGNMENT_LICENSE_HOLDER_ID", columnList = "license_holder_id"),
+	@Index(name = "IDX_ASSIGNMENT_ADDRESS_ID", columnList = "address_id"),
 	@Index(name = "IDX_ASSIGNMENT_VALID_TO", columnList = "valid_to")
 })
 public class RestaurantNumberAssignmentEntity {
@@ -43,6 +44,10 @@ public class RestaurantNumberAssignmentEntity {
 	@ManyToOne(optional = false, fetch = FetchType.LAZY)
 	@JoinColumn(name = "license_holder_id", columnDefinition = "VARCHAR(36)", foreignKey = @ForeignKey(name = "FK_ASSIGNMENT_LICENSE_HOLDER"))
 	private LicenseHolderEntity licenseHolder;
+
+	@ManyToOne(optional = false, fetch = FetchType.LAZY)
+	@JoinColumn(name = "address_id", columnDefinition = "VARCHAR(36)", foreignKey = @ForeignKey(name = "FK_ASSIGNMENT_ADDRESS"))
+	private AddressEntity address;
 
 	@Column(name = "holder_name", columnDefinition = "VARCHAR(255)")
 	private String holderName;
@@ -109,6 +114,19 @@ public class RestaurantNumberAssignmentEntity {
 
 	public RestaurantNumberAssignmentEntity withLicenseHolder(LicenseHolderEntity licenseHolder) {
 		this.licenseHolder = licenseHolder;
+		return this;
+	}
+
+	public AddressEntity getAddress() {
+		return address;
+	}
+
+	public void setAddress(AddressEntity address) {
+		this.address = address;
+	}
+
+	public RestaurantNumberAssignmentEntity withAddress(AddressEntity address) {
+		this.address = address;
 		return this;
 	}
 
@@ -190,8 +208,8 @@ public class RestaurantNumberAssignmentEntity {
 		return this;
 	}
 
-	// restaurantNumber and licenseHolder are intentionally excluded from equals/hashCode/toString to avoid touching lazy
-	// proxies.
+	// restaurantNumber, licenseHolder and address are intentionally excluded from equals/hashCode/toString to avoid
+	// touching lazy proxies.
 	@Override
 	public boolean equals(Object o) {
 		if (o == null || getClass() != o.getClass())

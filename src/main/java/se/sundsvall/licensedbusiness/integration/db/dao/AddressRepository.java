@@ -11,6 +11,8 @@ import se.sundsvall.licensedbusiness.integration.db.model.AddressEntity;
 public interface AddressRepository extends JpaRepository<AddressEntity, String> {
 	Optional<AddressEntity> findByStreetAddressAndPostalCodeAndMunicipalityId(String streetAddress, String postalCode, String municipalityId);
 
+	boolean existsByIdAndMunicipalityId(String id, String municipalityId);
+
 	Page<AddressEntity> findAllByMunicipalityId(String municipalityId, Pageable pageable);
 
 	Page<AddressEntity> findAllByMunicipalityIdAndStreetAddressContainingIgnoreCase(String municipalityId, String streetAddress, Pageable pageable);
