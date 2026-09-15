@@ -1,28 +1,33 @@
 package se.sundsvall.licensedbusiness.api.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
 import java.time.OffsetDateTime;
 import java.util.Objects;
+
+import static io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY;
 
 @Schema(description = "Address model")
 public class Address {
 
-	@Schema(description = "Address ID", examples = "9ce333ec-a473-438b-8406-a71e957dc107")
+	@Schema(description = "Address ID", examples = "9ce333ec-a473-438b-8406-a71e957dc107", accessMode = READ_ONLY)
 	private String id;
 
+	@NotBlank
 	@Schema(description = "Street address", examples = "Storgatan 1")
 	private String streetAddress;
 
+	@NotBlank
 	@Schema(description = "Postal code", examples = "852 30")
 	private String postalCode;
 
 	@Schema(description = "Postal area", examples = "Sundsvall")
 	private String postalArea;
 
-	@Schema(description = "Municipality ID", examples = "2281")
+	@Schema(description = "Municipality ID", examples = "2281", accessMode = READ_ONLY)
 	private String municipalityId;
 
-	@Schema(description = "Timestamp when the address was created")
+	@Schema(description = "Timestamp when the address was created", accessMode = READ_ONLY)
 	private OffsetDateTime created;
 
 	public static Address create() {

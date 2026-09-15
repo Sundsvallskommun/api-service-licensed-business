@@ -25,15 +25,10 @@ import se.sundsvall.licensedbusiness.integration.db.model.RestaurantNumberEntity
 import se.sundsvall.licensedbusiness.integration.db.model.enums.AssignmentStatus;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static se.sundsvall.dept44.util.LogUtils.sanitizeForLogging;
 import static se.sundsvall.licensedbusiness.service.AddressNormalizer.normalizePostalCode;
 import static se.sundsvall.licensedbusiness.service.AddressNormalizer.normalizeStreetAddress;
 
-// Temporary one-off import path for seeding the register from the legacy excel export (converted to CSV
-// externally). Expected header row: street_address,postal_code,postal_area,restaurant_number,org_number,
-// holder_name,premises_name,valid_from,valid_to,status. Remove once the historical data has been imported.
-// The whole file is imported in a single transaction: if any row fails, nothing is persisted.
-// The legacy export spells the same address in several ways ("852 30" / "85230", double spaces), so street
-// address and postal code are normalized before the address lookup to avoid duplicate address rows.
 @Service
 public class ImportService {
 
@@ -131,16 +126,16 @@ public class ImportService {
 							.withStatus(status));
 						assignmentsCreated++;
 					} catch (final Exception e) {
-						addError(errors, "Row %d: %s".formatted(record.getRecordNumber(), e.getMessage()));
+						addError(errors, "Row %d: %s".formatted(record.getRecordNumber(), sanitizeForLogging(e.getMessage())));
 					}
 				}
 			}
 		} catch (final IOException e) {
-			throw Problem.valueOf(BAD_REQUEST, "Could not read CSV file: " + e.getMessage());
+			throw Problem.valueOf(BAD_REQUEST, "Could not read CSV file: %s".formatted(sanitizeForLogging(e.getMessage())));
 		}
 
 		if (!errors.isEmpty()) {
-			throw Problem.valueOf(BAD_REQUEST, "Import failed, no data was saved: " + String.join("; ", errors));
+			throw Problem.valueOf(BAD_REQUEST, "Import failed, no data was saved: %s".formatted(String.join("; ", errors)));
 		}
 
 		return new ImportResult(rowsProcessed, addressesCreated, licenseHoldersCreated, restaurantNumbersCreated, assignmentsCreated, errors);

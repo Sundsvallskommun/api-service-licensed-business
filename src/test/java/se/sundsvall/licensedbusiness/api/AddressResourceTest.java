@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.licensedbusiness.api.model.Address;
 import se.sundsvall.licensedbusiness.api.model.AddressPagingParameters;
 import se.sundsvall.licensedbusiness.api.model.AddressSearchParameters;
@@ -14,9 +13,9 @@ import se.sundsvall.licensedbusiness.api.model.Addresses;
 import se.sundsvall.licensedbusiness.service.AddressService;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.http.HttpStatus.CREATED;
 
 @ExtendWith(MockitoExtension.class)
 class AddressResourceTest {
@@ -71,10 +70,14 @@ class AddressResourceTest {
 
 	@Test
 	void createAddress() {
-		final var addressResource = new AddressResource(addressService);
+		final var address = Address.create().withStreetAddress("Storgatan 1").withPostalCode("852 30").withPostalArea("Sundsvall");
+		when(addressService.createAddress(MUNICIPALITY_ID, address)).thenReturn(ADDRESS_ID);
 
-		assertThatThrownBy(() -> addressResource.createAddress(MUNICIPALITY_ID))
-			.isInstanceOf(Problem.class)
-			.hasMessageContaining("Not yet implemented");
+		final var addressResource = new AddressResource(addressService);
+		final var response = addressResource.createAddress(MUNICIPALITY_ID, address);
+
+		assertThat(response.getStatusCode()).isEqualTo(CREATED);
+		assertThat(response.getHeaders().getLocation()).hasToString("/2281/addresses/" + ADDRESS_ID);
+		verify(addressService).createAddress(MUNICIPALITY_ID, address);
 	}
 }

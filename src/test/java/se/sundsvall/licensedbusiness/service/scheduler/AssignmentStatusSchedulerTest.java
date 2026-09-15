@@ -13,7 +13,6 @@ import se.sundsvall.licensedbusiness.integration.db.model.enums.AssignmentStatus
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -29,8 +28,7 @@ class AssignmentStatusSchedulerTest {
 		final var expired1 = RestaurantNumberAssignmentEntity.create().withId("1").withStatus(AssignmentStatus.ACTIVE).withValidTo(LocalDate.now().minusDays(1));
 		final var expired2 = RestaurantNumberAssignmentEntity.create().withId("2").withStatus(AssignmentStatus.ACTIVE).withValidTo(LocalDate.now().minusDays(10));
 
-		when(restaurantNumberAssignmentRepository.findAllByStatusAndValidToBefore(eq(AssignmentStatus.ACTIVE), any()))
-			.thenReturn(List.of(expired1, expired2));
+		when(restaurantNumberAssignmentRepository.findAllByStatus(AssignmentStatus.ACTIVE)).thenReturn(List.of(expired1, expired2));
 
 		final var scheduler = new AssignmentStatusScheduler(restaurantNumberAssignmentRepository);
 		scheduler.updateExpiredAssignmentStatus();
@@ -43,12 +41,31 @@ class AssignmentStatusSchedulerTest {
 
 	@Test
 	void updateExpiredAssignmentStatusWithNoExpired() {
-		when(restaurantNumberAssignmentRepository.findAllByStatusAndValidToBefore(eq(AssignmentStatus.ACTIVE), any()))
-			.thenReturn(List.of());
+		when(restaurantNumberAssignmentRepository.findAllByStatus(AssignmentStatus.ACTIVE)).thenReturn(List.of());
 
 		final var scheduler = new AssignmentStatusScheduler(restaurantNumberAssignmentRepository);
 		scheduler.updateExpiredAssignmentStatus();
 
 		verify(restaurantNumberAssignmentRepository, times(0)).save(any());
+	}
+
+	@Test
+	void updateExpiredAssignmentStatusLeavesStillRunningAssignmentsAlone() {
+		final var openEnded = RestaurantNumberAssignmentEntity.create().withId("1").withStatus(AssignmentStatus.ACTIVE);
+		final var endsToday = RestaurantNumberAssignmentEntity.create().withId("2").withStatus(AssignmentStatus.ACTIVE).withValidTo(LocalDate.now());
+		final var endsLater = RestaurantNumberAssignmentEntity.create().withId("3").withStatus(AssignmentStatus.ACTIVE).withValidTo(LocalDate.now().plusYears(1));
+		final var expired = RestaurantNumberAssignmentEntity.create().withId("4").withStatus(AssignmentStatus.ACTIVE).withValidTo(LocalDate.now().minusDays(1));
+
+		when(restaurantNumberAssignmentRepository.findAllByStatus(AssignmentStatus.ACTIVE)).thenReturn(List.of(openEnded, endsToday, endsLater, expired));
+
+		final var scheduler = new AssignmentStatusScheduler(restaurantNumberAssignmentRepository);
+		scheduler.updateExpiredAssignmentStatus();
+
+		final var captor = ArgumentCaptor.forClass(RestaurantNumberAssignmentEntity.class);
+		verify(restaurantNumberAssignmentRepository, times(1)).save(captor.capture());
+		assertThat(captor.getValue().getId()).isEqualTo("4");
+		assertThat(openEnded.getStatus()).isEqualTo(AssignmentStatus.ACTIVE);
+		assertThat(endsToday.getStatus()).isEqualTo(AssignmentStatus.ACTIVE);
+		assertThat(endsLater.getStatus()).isEqualTo(AssignmentStatus.ACTIVE);
 	}
 }

@@ -11,6 +11,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import se.sundsvall.dept44.problem.violations.ConstraintViolationProblem;
 import se.sundsvall.dept44.problem.violations.Violation;
 import se.sundsvall.licensedbusiness.Application;
+import se.sundsvall.licensedbusiness.api.model.Address;
 import se.sundsvall.licensedbusiness.service.AddressService;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -18,6 +19,7 @@ import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @SpringBootTest(classes = Application.class, webEnvironment = RANDOM_PORT)
 @ActiveProfiles("junit")
@@ -213,6 +215,30 @@ class AddressResourceFailureTest {
 		assertThat(response.getViolations())
 			.extracting(Violation::field, Violation::message)
 			.containsExactly(tuple("page", "must be greater than or equal to 1"));
+
+		verifyNoInteractions(addressServiceMock);
+	}
+
+	@Test
+	void createAddressWithBlankStreetAddressAndPostalCode() {
+		final var response = webTestClient.post()
+			.uri(builder -> builder.path(PATH).build(Map.of("municipalityId", MUNICIPALITY_ID)))
+			.contentType(APPLICATION_JSON)
+			.bodyValue(Address.create().withStreetAddress(" ").withPostalCode(""))
+			.exchange()
+			.expectStatus().isBadRequest()
+			.expectBody(ConstraintViolationProblem.class)
+			.returnResult()
+			.getResponseBody();
+
+		assertThat(response).isNotNull();
+		assertThat(response.getTitle()).isEqualTo("Constraint Violation");
+		assertThat(response.getStatus()).isEqualTo(BAD_REQUEST);
+		assertThat(response.getViolations())
+			.extracting(Violation::field, Violation::message)
+			.containsExactlyInAnyOrder(
+				tuple("streetAddress", "must not be blank"),
+				tuple("postalCode", "must not be blank"));
 
 		verifyNoInteractions(addressServiceMock);
 	}

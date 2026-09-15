@@ -2,6 +2,7 @@ package se.sundsvall.licensedbusiness.api;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -13,6 +14,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import se.sundsvall.dept44.common.validators.annotation.ValidMunicipalityId;
@@ -23,8 +25,11 @@ import se.sundsvall.licensedbusiness.api.model.AddressSearchParameters;
 import se.sundsvall.licensedbusiness.api.model.Addresses;
 import se.sundsvall.licensedbusiness.service.AddressService;
 
-import static org.springframework.http.HttpStatus.NOT_IMPLEMENTED;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.springframework.http.HttpHeaders.LOCATION;
+import static org.springframework.http.MediaType.ALL_VALUE;
 import static org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON_VALUE;
+import static org.springframework.web.util.UriComponentsBuilder.fromPath;
 
 @Validated
 @RestController
@@ -73,11 +78,17 @@ class AddressResource {
 	}
 
 	@Operation(summary = "Create an address", responses = {
-		@ApiResponse(responseCode = "201", description = "Created")
+		@ApiResponse(responseCode = "201", description = "Created", headers = @Header(name = LOCATION, schema = @Schema(type = "string"))),
+		@ApiResponse(responseCode = "409", description = "Conflict", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))
 	})
 	@PostMapping
 	ResponseEntity<Void> createAddress(
-		@Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @PathVariable @ValidMunicipalityId final String municipalityId) {
-		throw Problem.valueOf(NOT_IMPLEMENTED, "Not yet implemented");
+		@Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @PathVariable @ValidMunicipalityId final String municipalityId,
+		@Valid @RequestBody final Address address) {
+		final var addressId = addressService.createAddress(municipalityId, address);
+
+		return ResponseEntity.created(fromPath("/{municipalityId}/addresses/{addressId}").buildAndExpand(municipalityId, addressId).toUri())
+			.header(CONTENT_TYPE, ALL_VALUE)
+			.build();
 	}
 }
