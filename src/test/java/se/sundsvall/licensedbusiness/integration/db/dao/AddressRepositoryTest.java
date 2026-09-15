@@ -82,4 +82,11 @@ class AddressRepositoryTest {
 
 		assertThat(page.getTotalElements()).isZero();
 	}
+
+	@Test
+	void existsByIdAndMunicipalityId() {
+		assertThat(addressRepository.existsByIdAndMunicipalityId("address-1", MUNICIPALITY_ID)).isTrue();
+		assertThat(addressRepository.existsByIdAndMunicipalityId("address-1", OTHER_MUNICIPALITY_ID)).isFalse();
+		assertThat(addressRepository.existsByIdAndMunicipalityId("nonexistent", MUNICIPALITY_ID)).isFalse();
+	}
 }
