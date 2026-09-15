@@ -8,6 +8,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.annotation.Transactional;
 import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.licensedbusiness.integration.db.dao.AddressRepository;
 import se.sundsvall.licensedbusiness.integration.db.dao.RestaurantNumberRepository;
@@ -123,12 +124,12 @@ class RestaurantNumberServiceTest {
 			every later attempt fails too, and the endpoint starts answering 409 as soon as two requests overlap. \
 			Keep the method and its class free of @Transactional, and do not call it from a transactional method.""";
 
-		assertThat(RestaurantNumberService.class.getMethod("createRestaurantNumber", String.class).getAnnotations())
-			.as(reason)
-			.noneMatch(annotation -> "Transactional".equals(annotation.annotationType().getSimpleName()));
-		assertThat(RestaurantNumberService.class.getAnnotations())
-			.as(reason)
-			.noneMatch(annotation -> "Transactional".equals(annotation.annotationType().getSimpleName()));
+		final var method = RestaurantNumberService.class.getMethod("createRestaurantNumber", String.class);
+
+		assertThat(method.getAnnotation(Transactional.class)).as(reason).isNull();
+		assertThat(method.getAnnotation(jakarta.transaction.Transactional.class)).as(reason).isNull();
+		assertThat(RestaurantNumberService.class.getAnnotation(Transactional.class)).as(reason).isNull();
+		assertThat(RestaurantNumberService.class.getAnnotation(jakarta.transaction.Transactional.class)).as(reason).isNull();
 	}
 
 	@Test
