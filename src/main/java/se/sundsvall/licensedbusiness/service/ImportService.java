@@ -25,6 +25,8 @@ import se.sundsvall.licensedbusiness.integration.db.model.RestaurantNumberEntity
 import se.sundsvall.licensedbusiness.integration.db.model.enums.AssignmentStatus;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static se.sundsvall.licensedbusiness.service.AddressNormalizer.normalizePostalCode;
+import static se.sundsvall.licensedbusiness.service.AddressNormalizer.normalizeStreetAddress;
 
 // Temporary one-off import path for seeding the register from the legacy excel export (converted to CSV
 // externally). Expected header row: street_address,postal_code,postal_area,restaurant_number,org_number,
@@ -142,16 +144,6 @@ public class ImportService {
 		}
 
 		return new ImportResult(rowsProcessed, addressesCreated, licenseHoldersCreated, restaurantNumbersCreated, assignmentsCreated, errors);
-	}
-
-	private static String normalizeStreetAddress(final String raw) {
-		return raw.trim().replaceAll("\\s+", " ");
-	}
-
-	// "852 30", "85230" and "8523 0" all become "852 30". Anything that is not five digits is kept as typed.
-	private static String normalizePostalCode(final String raw) {
-		final var digits = raw.replaceAll("\\s+", "");
-		return digits.matches("\\d{5}") ? digits.substring(0, 3) + " " + digits.substring(3) : digits;
 	}
 
 	private static void addError(final List<String> errors, final String message) {
