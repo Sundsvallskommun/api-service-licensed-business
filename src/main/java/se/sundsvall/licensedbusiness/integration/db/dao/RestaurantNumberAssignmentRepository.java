@@ -1,5 +1,6 @@
 package se.sundsvall.licensedbusiness.integration.db.dao;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -12,7 +13,7 @@ import se.sundsvall.licensedbusiness.integration.db.model.enums.AssignmentStatus
 @Repository
 public interface RestaurantNumberAssignmentRepository extends JpaRepository<RestaurantNumberAssignmentEntity, String> {
 
-	List<RestaurantNumberAssignmentEntity> findAllByStatus(AssignmentStatus status);
+	List<RestaurantNumberAssignmentEntity> findAllByStatusAndValidToBefore(AssignmentStatus status, LocalDate date);
 
 	@EntityGraph(attributePaths = {
 		"restaurantNumber", "address", "licenseHolder"
