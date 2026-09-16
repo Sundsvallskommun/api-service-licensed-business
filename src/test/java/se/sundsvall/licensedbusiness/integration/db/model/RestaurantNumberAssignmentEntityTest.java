@@ -26,7 +26,9 @@ class RestaurantNumberAssignmentEntityTest {
 	private static final LocalDate VALID_FROM = LocalDate.of(2024, 1, 1);
 	private static final LocalDate VALID_TO = LocalDate.of(2024, 12, 31);
 	private static final AssignmentStatus STATUS = AssignmentStatus.ACTIVE;
+	private static final long VERSION = 3;
 	private static final OffsetDateTime CREATED = OffsetDateTime.of(2024, 6, 15, 12, 0, 0, 0, UTC);
+	private static final OffsetDateTime MODIFIED = OffsetDateTime.of(2024, 7, 15, 12, 0, 0, 0, UTC);
 	private static final AtomicInteger SEQUENCE = new AtomicInteger();
 
 	@BeforeAll
@@ -60,7 +62,9 @@ class RestaurantNumberAssignmentEntityTest {
 			.withValidFrom(VALID_FROM)
 			.withValidTo(VALID_TO)
 			.withStatus(STATUS)
-			.withCreated(CREATED);
+			.withVersion(VERSION)
+			.withCreated(CREATED)
+			.withModified(MODIFIED);
 
 		assertThat(assignmentEntity.getId()).isEqualTo(ID);
 		assertThat(assignmentEntity.getRestaurantNumber()).isEqualTo(restaurantNumber);
@@ -71,7 +75,9 @@ class RestaurantNumberAssignmentEntityTest {
 		assertThat(assignmentEntity.getValidFrom()).isEqualTo(VALID_FROM);
 		assertThat(assignmentEntity.getValidTo()).isEqualTo(VALID_TO);
 		assertThat(assignmentEntity.getStatus()).isEqualTo(STATUS);
+		assertThat(assignmentEntity.getVersion()).isEqualTo(VERSION);
 		assertThat(assignmentEntity.getCreated()).isEqualTo(CREATED);
+		assertThat(assignmentEntity.getModified()).isEqualTo(MODIFIED);
 		assertThat(assignmentEntity).hasNoNullFieldsOrProperties();
 	}
 
@@ -90,7 +96,9 @@ class RestaurantNumberAssignmentEntityTest {
 		assignmentEntity.setValidFrom(VALID_FROM);
 		assignmentEntity.setValidTo(VALID_TO);
 		assignmentEntity.setStatus(STATUS);
+		assignmentEntity.setVersion(VERSION);
 		assignmentEntity.setCreated(CREATED);
+		assignmentEntity.setModified(MODIFIED);
 
 		assertThat(assignmentEntity.getId()).isEqualTo(ID);
 		assertThat(assignmentEntity.getRestaurantNumber()).isEqualTo(restaurantNumber);
@@ -101,12 +109,15 @@ class RestaurantNumberAssignmentEntityTest {
 		assertThat(assignmentEntity.getValidFrom()).isEqualTo(VALID_FROM);
 		assertThat(assignmentEntity.getValidTo()).isEqualTo(VALID_TO);
 		assertThat(assignmentEntity.getStatus()).isEqualTo(STATUS);
+		assertThat(assignmentEntity.getVersion()).isEqualTo(VERSION);
 		assertThat(assignmentEntity.getCreated()).isEqualTo(CREATED);
+		assertThat(assignmentEntity.getModified()).isEqualTo(MODIFIED);
 		assertThat(assignmentEntity).hasNoNullFieldsOrProperties();
 	}
 
 	@Test
 	void constructorTest() {
-		assertThat(new RestaurantNumberAssignmentEntity()).hasAllNullFieldsOrProperties();
+		assertThat(new RestaurantNumberAssignmentEntity()).hasAllNullFieldsOrPropertiesExcept("version");
+		assertThat(new RestaurantNumberAssignmentEntity().getVersion()).isZero();
 	}
 }

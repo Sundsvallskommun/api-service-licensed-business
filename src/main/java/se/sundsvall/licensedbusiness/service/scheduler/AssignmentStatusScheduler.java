@@ -27,9 +27,6 @@ public class AssignmentStatusScheduler {
 		final var today = LocalDate.now(ZoneId.systemDefault());
 
 		restaurantNumberAssignmentRepository.findAllByStatusAndValidToBefore(AssignmentStatus.ACTIVE, today)
-			.forEach(assignment -> {
-				assignment.setStatus(AssignmentStatus.ENDED);
-				restaurantNumberAssignmentRepository.save(assignment);
-			});
+			.forEach(assignment -> assignment.setStatus(AssignmentStatus.ENDED));
 	}
 }

@@ -50,3 +50,13 @@ INSERT IGNORE INTO restaurant_number_assignment (id, restaurant_number_id, licen
 ('assignment-5', 'rn-3', 'holder-1', 'address-1', 'Bolag A', '2022-01-01', '2022-06-01', 'ENDED'),
 ('assignment-6', 'rn-3', 'holder-1', 'address-6', 'Bolag A', '2023-01-01', '2023-06-01', 'ENDED'),
 ('assignment-7', 'rn-4', 'holder-1', 'address-6', 'Bolag A', '2024-01-01', '2024-06-01', 'ENDED');
+
+-- Test data for restaurant number sequence allocation (RestaurantNumberRepositoryTest).
+-- Municipality 2262 is used so that the 2281 data above is left untouched. Sequences 0001 and 0003 are in use,
+-- so the lowest free one is 0002. The two remaining numbers must be ignored by the sequence lookup: one has a
+-- non numeric sequence, the other is longer than the generated format.
+INSERT IGNORE INTO restaurant_number (id, restaurant_number, municipality_id) VALUES
+('rn-seq-1', '22620001', '2262'),
+('rn-seq-2', '22620003', '2262'),
+('rn-seq-3', '2262037x', '2262'),
+('rn-seq-4', '226200011', '2262');

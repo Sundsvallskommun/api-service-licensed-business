@@ -71,4 +71,38 @@ class RestaurantNumberRepositoryTest {
 
 		assertThat(available).isEmpty();
 	}
+
+	@Test
+	void findByRestaurantNumberAndMunicipalityId() {
+		final var restaurantNumber = restaurantNumberRepository.findByRestaurantNumberAndMunicipalityId("2001", MUNICIPALITY_ID);
+
+		assertThat(restaurantNumber).get().extracting("id").isEqualTo("rn-1");
+	}
+
+	@Test
+	void findByRestaurantNumberAndMunicipalityIdIsScopedToMunicipality() {
+		final var restaurantNumber = restaurantNumberRepository.findByRestaurantNumberAndMunicipalityId("2001", "2260");
+
+		assertThat(restaurantNumber).isEmpty();
+	}
+
+	@Test
+	void findByIdAndMunicipalityId() {
+		assertThat(restaurantNumberRepository.findByIdAndMunicipalityId("rn-1", MUNICIPALITY_ID)).isPresent();
+		assertThat(restaurantNumberRepository.findByIdAndMunicipalityId("rn-1", "2260")).isEmpty();
+	}
+
+	@Test
+	void findSequencedRestaurantNumbersSkipsNumbersOutsideTheGeneratedFormat() {
+		final var numbers = restaurantNumberRepository.findSequencedRestaurantNumbers("2262");
+
+		assertThat(numbers).containsExactlyInAnyOrder("22620001", "22620003", "2262037x");
+	}
+
+	@Test
+	void findSequencedRestaurantNumbersWithNoMatch() {
+		final var numbers = restaurantNumberRepository.findSequencedRestaurantNumbers(MUNICIPALITY_ID);
+
+		assertThat(numbers).isEmpty();
+	}
 }

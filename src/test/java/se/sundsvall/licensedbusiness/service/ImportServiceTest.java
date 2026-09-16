@@ -47,16 +47,16 @@ class ImportServiceTest {
 	@Test
 	void importRestaurantNumbers() {
 		final var savedStorgatan = AddressEntity.create().withId("address-1").withStreetAddress("Storgatan 1").withPostalCode("852 30");
-		final var savedHolderA = LicenseHolderEntity.create().withId("holder-1").withOrgNumber("5566112233");
-		final var savedHolderB = LicenseHolderEntity.create().withId("holder-2").withOrgNumber("5566998877");
+		final var savedHolderA = LicenseHolderEntity.create().withId("holder-1").withOrgNumber("556611-2233");
+		final var savedHolderB = LicenseHolderEntity.create().withId("holder-2").withOrgNumber("556699-8877");
 		final var savedRestaurantNumber = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("1001");
 
 		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID))
 			.thenReturn(Optional.empty(), Optional.of(savedStorgatan));
 		when(addressRepository.save(any())).thenReturn(savedStorgatan);
 
-		when(licenseHolderRepository.findByOrgNumber("5566112233")).thenReturn(Optional.empty());
-		when(licenseHolderRepository.findByOrgNumber("5566998877")).thenReturn(Optional.empty());
+		when(licenseHolderRepository.findByOrgNumber("556611-2233")).thenReturn(Optional.empty());
+		when(licenseHolderRepository.findByOrgNumber("556699-8877")).thenReturn(Optional.empty());
 		when(licenseHolderRepository.save(any())).thenReturn(savedHolderA, savedHolderB);
 
 		when(restaurantNumberRepository.findByRestaurantNumber("1001")).thenReturn(Optional.empty(), Optional.of(savedRestaurantNumber));
@@ -90,12 +90,12 @@ class ImportServiceTest {
 	void importRestaurantNumbersLetsRestaurantNumberMoveBetweenAddresses() {
 		final var savedStorgatan = AddressEntity.create().withId("address-1").withStreetAddress("Storgatan 1").withPostalCode("852 30");
 		final var savedKajplats = AddressEntity.create().withId("address-2").withStreetAddress("Kajplats 1").withPostalCode("851 02");
-		final var savedHolder = LicenseHolderEntity.create().withId("holder-1").withOrgNumber("5566112233");
+		final var savedHolder = LicenseHolderEntity.create().withId("holder-1").withOrgNumber("556611-2233");
 		final var savedRestaurantNumber = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("1001");
 
 		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID)).thenReturn(Optional.of(savedStorgatan));
 		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Kajplats 1", "851 02", MUNICIPALITY_ID)).thenReturn(Optional.of(savedKajplats));
-		when(licenseHolderRepository.findByOrgNumber("5566112233")).thenReturn(Optional.of(savedHolder));
+		when(licenseHolderRepository.findByOrgNumber("556611-2233")).thenReturn(Optional.of(savedHolder));
 		when(restaurantNumberRepository.findByRestaurantNumber("1001")).thenReturn(Optional.empty(), Optional.of(savedRestaurantNumber));
 		when(restaurantNumberRepository.save(any())).thenReturn(savedRestaurantNumber);
 
@@ -121,11 +121,11 @@ class ImportServiceTest {
 	@Test
 	void importRestaurantNumbersNormalizesAddressBeforeLookup() {
 		final var savedStorgatan = AddressEntity.create().withId("address-1").withStreetAddress("Storgatan 1").withPostalCode("852 30");
-		final var savedHolder = LicenseHolderEntity.create().withId("holder-1").withOrgNumber("5566112233");
+		final var savedHolder = LicenseHolderEntity.create().withId("holder-1").withOrgNumber("556611-2233");
 		final var savedRestaurantNumber = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("1001");
 
 		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID)).thenReturn(Optional.of(savedStorgatan));
-		when(licenseHolderRepository.findByOrgNumber("5566112233")).thenReturn(Optional.of(savedHolder));
+		when(licenseHolderRepository.findByOrgNumber("556611-2233")).thenReturn(Optional.of(savedHolder));
 		when(restaurantNumberRepository.findByRestaurantNumber("1001")).thenReturn(Optional.of(savedRestaurantNumber));
 
 		// "85230", "8523 0" and a double space inside the street name must all resolve to the same stored address.
@@ -165,12 +165,12 @@ class ImportServiceTest {
 	@Test
 	void importRestaurantNumbersStripsUtf8Bom() {
 		final var savedStorgatan = AddressEntity.create().withId("address-1").withStreetAddress("Storgatan 1").withPostalCode("852 30");
-		final var savedHolder = LicenseHolderEntity.create().withId("holder-1").withOrgNumber("5566112233");
+		final var savedHolder = LicenseHolderEntity.create().withId("holder-1").withOrgNumber("556611-2233");
 		final var savedRestaurantNumber = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("1001");
 
 		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID)).thenReturn(Optional.empty());
 		when(addressRepository.save(any())).thenReturn(savedStorgatan);
-		when(licenseHolderRepository.findByOrgNumber("5566112233")).thenReturn(Optional.empty());
+		when(licenseHolderRepository.findByOrgNumber("556611-2233")).thenReturn(Optional.empty());
 		when(licenseHolderRepository.save(any())).thenReturn(savedHolder);
 		when(restaurantNumberRepository.findByRestaurantNumber("1001")).thenReturn(Optional.empty());
 		when(restaurantNumberRepository.save(any())).thenReturn(savedRestaurantNumber);

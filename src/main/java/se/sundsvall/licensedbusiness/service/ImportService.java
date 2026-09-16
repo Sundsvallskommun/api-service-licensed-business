@@ -27,13 +27,8 @@ import se.sundsvall.licensedbusiness.integration.db.model.enums.AssignmentStatus
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static se.sundsvall.licensedbusiness.service.AddressNormalizer.normalizePostalCode;
 import static se.sundsvall.licensedbusiness.service.AddressNormalizer.normalizeStreetAddress;
+import static se.sundsvall.licensedbusiness.service.TextSanitizer.sanitize;
 
-// Temporary one-off import path for seeding the register from the legacy excel export (converted to CSV
-// externally). Expected header row: street_address,postal_code,postal_area,restaurant_number,org_number,
-// holder_name,premises_name,valid_from,valid_to,status. Remove once the historical data has been imported.
-// The whole file is imported in a single transaction: if any row fails, nothing is persisted.
-// The legacy export spells the same address in several ways ("852 30" / "85230", double spaces), so street
-// address and postal code are normalized before the address lookup to avoid duplicate address rows.
 @Service
 public class ImportService {
 
@@ -86,7 +81,7 @@ public class ImportService {
 						final var postalCode = normalizePostalCode(record.get("postal_code"));
 						final var postalArea = record.get("postal_area").trim();
 						final var restaurantNumber = record.get("restaurant_number").trim();
-						final var orgNumber = record.get("org_number").trim();
+						final var orgNumber = OrgNumberNormalizer.normalize(record.get("org_number"));
 						final var holderName = record.get("holder_name").trim();
 						final var premisesName = record.get("premises_name").trim();
 						final var validFrom = LocalDate.parse(record.get("valid_from").trim());
@@ -131,16 +126,16 @@ public class ImportService {
 							.withStatus(status));
 						assignmentsCreated++;
 					} catch (final Exception e) {
-						addError(errors, "Row %d: %s".formatted(record.getRecordNumber(), e.getMessage()));
+						addError(errors, "Row %d: %s".formatted(record.getRecordNumber(), sanitize(e.getMessage())));
 					}
 				}
 			}
 		} catch (final IOException e) {
-			throw Problem.valueOf(BAD_REQUEST, "Could not read CSV file: " + e.getMessage());
+			throw Problem.valueOf(BAD_REQUEST, "Could not read CSV file: %s".formatted(sanitize(e.getMessage())));
 		}
 
 		if (!errors.isEmpty()) {
-			throw Problem.valueOf(BAD_REQUEST, "Import failed, no data was saved: " + String.join("; ", errors));
+			throw Problem.valueOf(BAD_REQUEST, "Import failed, no data was saved: %s".formatted(String.join("; ", errors)));
 		}
 
 		return new ImportResult(rowsProcessed, addressesCreated, licenseHoldersCreated, restaurantNumbersCreated, assignmentsCreated, errors);
