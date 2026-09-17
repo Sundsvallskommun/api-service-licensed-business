@@ -1,0 +1,8 @@
+{
+	"id": "it-address-2",
+	"streetAddress": "Provgatan 3B",
+	"postalCode": "852 30",
+	"postalArea": "Sundsvall",
+	"municipalityId": "2281",
+	"created": "${json-unit.any-string}"
+}

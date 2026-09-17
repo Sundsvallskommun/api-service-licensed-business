@@ -1,6 +1,5 @@
 package se.sundsvall.licensedbusiness.service;
 
-import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +9,7 @@ import se.sundsvall.dept44.models.api.paging.AbstractParameterPagingAndSortingBa
 import se.sundsvall.dept44.models.api.paging.PagingAndSortingMetaData;
 import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.licensedbusiness.api.model.Address;
+import se.sundsvall.licensedbusiness.api.model.AddressLookupParameters;
 import se.sundsvall.licensedbusiness.api.model.AddressPagingParameters;
 import se.sundsvall.licensedbusiness.api.model.AddressSearchParameters;
 import se.sundsvall.licensedbusiness.api.model.Addresses;
@@ -17,8 +17,11 @@ import se.sundsvall.licensedbusiness.integration.db.dao.AddressRepository;
 import se.sundsvall.licensedbusiness.integration.db.model.AddressEntity;
 import se.sundsvall.licensedbusiness.service.mapper.AddressMapper;
 
+import java.util.Optional;
+
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.web.util.UriComponentsBuilder.fromPath;
 import static se.sundsvall.licensedbusiness.service.AddressNormalizer.normalizePostalCode;
 import static se.sundsvall.licensedbusiness.service.AddressNormalizer.normalizeStreetAddress;
 import static se.sundsvall.licensedbusiness.service.TextSanitizer.sanitize;
@@ -40,9 +43,14 @@ public class AddressService {
 		final var streetAddress = normalizeStreetAddress(address.getStreetAddress());
 		final var postalCode = normalizePostalCode(address.getPostalCode());
 
-		addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId(streetAddress, postalCode, municipalityId)
+		findExisting(municipalityId, streetAddress, postalCode)
 			.ifPresent(existing -> {
-				throw Problem.valueOf(CONFLICT, "Address %s, %s already exists with ID %s".formatted(sanitize(streetAddress), sanitize(postalCode), sanitize(existing.getId())));
+				throw Problem.builder()
+					.withStatus(CONFLICT)
+					.withTitle(CONFLICT.getReasonPhrase())
+					.withDetail("Address %s, %s already exists with ID %s".formatted(sanitize(streetAddress), sanitize(postalCode), sanitize(existing.getId())))
+					.withInstance(fromPath("/{municipalityId}/addresses/{addressId}").buildAndExpand(municipalityId, existing.getId()).toUri())
+					.build();
 			});
 
 		return addressRepository.save(AddressEntity.create()
@@ -51,6 +59,15 @@ public class AddressService {
 			.withPostalArea(Optional.ofNullable(address.getPostalArea()).map(String::trim).orElse(null))
 			.withMunicipalityId(municipalityId))
 			.getId();
+	}
+
+	public Address lookupAddress(final String municipalityId, final AddressLookupParameters lookupParameters) {
+		final var streetAddress = normalizeStreetAddress(lookupParameters.getStreetAddress());
+		final var postalCode = normalizePostalCode(lookupParameters.getPostalCode());
+
+		return findExisting(municipalityId, streetAddress, postalCode)
+			.map(addressMapper::toAddress)
+			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Address %s, %s not found".formatted(sanitize(streetAddress), sanitize(postalCode))));
 	}
 
 	public Address getAddress(final String municipalityId, final String addressId) {
@@ -68,6 +85,10 @@ public class AddressService {
 	public Addresses searchAddresses(final String municipalityId, final AddressSearchParameters searchParameters) {
 		final var page = addressRepository.findAllByMunicipalityIdAndStreetAddressContainingIgnoreCase(municipalityId, searchParameters.getQuery(), toPageable(searchParameters));
 		return toAddresses(page);
+	}
+
+	private Optional<AddressEntity> findExisting(final String municipalityId, final String streetAddress, final String postalCode) {
+		return addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId(streetAddress, postalCode, municipalityId);
 	}
 
 	private static Pageable toPageable(final AbstractParameterPagingAndSortingBase pagingParameters) {

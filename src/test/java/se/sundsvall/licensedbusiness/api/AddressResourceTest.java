@@ -7,6 +7,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import se.sundsvall.licensedbusiness.api.model.Address;
+import se.sundsvall.licensedbusiness.api.model.AddressLookupParameters;
 import se.sundsvall.licensedbusiness.api.model.AddressPagingParameters;
 import se.sundsvall.licensedbusiness.api.model.AddressSearchParameters;
 import se.sundsvall.licensedbusiness.api.model.Addresses;
@@ -66,6 +67,22 @@ class AddressResourceTest {
 		assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
 		assertThat(response.getBody()).isEqualTo(expected);
 		verify(addressService).searchAddresses(MUNICIPALITY_ID, searchParameters);
+	}
+
+	@Test
+	void lookupAddress() {
+		final var lookupParameters = new AddressLookupParameters();
+		lookupParameters.setStreetAddress("Storgatan 1");
+		lookupParameters.setPostalCode("852 30");
+		final var expected = Address.create().withId(ADDRESS_ID).withStreetAddress("Storgatan 1").withPostalCode("852 30").withMunicipalityId(MUNICIPALITY_ID);
+		when(addressService.lookupAddress(MUNICIPALITY_ID, lookupParameters)).thenReturn(expected);
+
+		final var addressResource = new AddressResource(addressService);
+		final var response = addressResource.lookupAddress(MUNICIPALITY_ID, lookupParameters);
+
+		assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+		assertThat(response.getBody()).isEqualTo(expected);
+		verify(addressService).lookupAddress(MUNICIPALITY_ID, lookupParameters);
 	}
 
 	@Test

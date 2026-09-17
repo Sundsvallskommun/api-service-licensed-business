@@ -1,0 +1,29 @@
+{
+	"id": "it-assignment-1",
+	"restaurantNumber": {
+		"id": "it-number-1",
+		"number": "22810001",
+		"municipalityId": "2281",
+		"created": "${json-unit.any-string}"
+	},
+	"address": {
+		"id": "it-address-1",
+		"streetAddress": "Provgatan 1",
+		"postalCode": "852 30",
+		"postalArea": "Sundsvall",
+		"municipalityId": "2281",
+		"created": "${json-unit.any-string}"
+	},
+	"licenseHolder": {
+		"id": "it-holder-1",
+		"orgNumber": "556600-1122",
+		"name": "Testrestaurang AB",
+		"created": "${json-unit.any-string}"
+	},
+	"holderName": "Testrestaurang AB",
+	"premisesName": "Ombyggda provkrogen",
+	"validFrom": "2020-01-01",
+	"validTo": "2099-12-31",
+	"status": "ACTIVE",
+	"created": "${json-unit.any-string}"
+}

@@ -1,5 +1,6 @@
 -- Test data for AddressRepositoryTest.
--- Municipality 2281: 15 addresses, 5 of which contain "storgatan" in varying case (case-insensitive search coverage).
+-- Municipality 2281: 16 addresses, 5 of which contain "storgatan" in varying case (case-insensitive search
+-- coverage), and one with a house number letter (address-19, exact lookup coverage).
 -- Municipality 2260: 3 addresses, including one also named "Storgatan 1" (must not leak into 2281 results).
 
 -- INSERT IGNORE: the same testcontainers MariaDB instance is reused across multiple Spring test
@@ -21,6 +22,7 @@ INSERT IGNORE INTO address (id, street_address, postal_code, postal_area, munici
 ('address-13', 'Norra Kajen 1', '852 60', 'Sundsvall', '2281'),
 ('address-14', 'Norra Kajen 5', '852 61', 'Sundsvall', '2281'),
 ('address-15', 'Södra Allén 2', '852 70', 'Sundsvall', '2281'),
+('address-19', 'Kajplats 3B', '851 04', 'Sundsvall', '2281'),
 ('address-16', 'Storgatan 1', '831 30', 'Östersund', '2260'),
 ('address-17', 'Torggatan 4', '831 31', 'Östersund', '2260'),
 ('address-18', 'Kyrkogatan 9', '831 32', 'Östersund', '2260');

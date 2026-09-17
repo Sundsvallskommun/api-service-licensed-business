@@ -1,0 +1,28 @@
+{
+	"id": "${json-unit.any-string}",
+	"restaurantNumber": {
+		"id": "it-number-2",
+		"number": "22810003",
+		"municipalityId": "2281",
+		"created": "${json-unit.any-string}"
+	},
+	"address": {
+		"id": "it-address-2",
+		"streetAddress": "Provgatan 3B",
+		"postalCode": "852 30",
+		"postalArea": "Sundsvall",
+		"municipalityId": "2281",
+		"created": "${json-unit.any-string}"
+	},
+	"licenseHolder": {
+		"id": "it-holder-1",
+		"orgNumber": "556600-1122",
+		"name": "Testrestaurang AB",
+		"created": "${json-unit.any-string}"
+	},
+	"holderName": "Testrestaurang AB",
+	"premisesName": "Nya provkrogen",
+	"validFrom": "2026-02-01",
+	"status": "ACTIVE",
+	"created": "${json-unit.any-string}"
+}

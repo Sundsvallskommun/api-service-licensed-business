@@ -1,0 +1,6 @@
+{
+	"title": "Conflict",
+	"status": 409,
+	"detail": "Address provgatan 1, 852 30 already exists with ID it-address-1",
+	"instance": "/2281/addresses/it-address-1"
+}

@@ -1,0 +1,3 @@
+street_address,postal_code,postal_area,restaurant_number,org_number,holder_name,premises_name,valid_from,valid_to,status
+Importgatan 5,852 40,Sundsvall,22815001,5566005566,Importrestaurang AB,Importkrogen,2021-01-01,,ACTIVE
+Provgatan 1,85230,Sundsvall,22815002,556600-1122,Testrestaurang AB,Andra provkrogen,2018-01-01,2018-12-31,ENDED

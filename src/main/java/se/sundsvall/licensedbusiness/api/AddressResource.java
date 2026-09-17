@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import se.sundsvall.dept44.common.validators.annotation.ValidMunicipalityId;
 import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.licensedbusiness.api.model.Address;
+import se.sundsvall.licensedbusiness.api.model.AddressLookupParameters;
 import se.sundsvall.licensedbusiness.api.model.AddressPagingParameters;
 import se.sundsvall.licensedbusiness.api.model.AddressSearchParameters;
 import se.sundsvall.licensedbusiness.api.model.Addresses;
@@ -75,6 +76,19 @@ class AddressResource {
 		@Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @PathVariable @ValidMunicipalityId final String municipalityId,
 		@Valid @ParameterObject final AddressSearchParameters searchParameters) {
 		return ResponseEntity.ok(addressService.searchAddresses(municipalityId, searchParameters));
+	}
+
+	@Operation(summary = "Look up a single address by street address and postal code",
+		description = "Street address and postal code are matched on their normalized form, so case, extra whitespace, a space in the postal code and a house number letter written as \"1 A\" or \"1A\" all resolve to the same address. This is the same key the duplicate check on create uses.",
+		responses = {
+			@ApiResponse(responseCode = "200", description = "OK", useReturnTypeSchema = true),
+			@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))
+		})
+	@GetMapping("/lookup")
+	ResponseEntity<Address> lookupAddress(
+		@Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @PathVariable @ValidMunicipalityId final String municipalityId,
+		@Valid @ParameterObject final AddressLookupParameters lookupParameters) {
+		return ResponseEntity.ok(addressService.lookupAddress(municipalityId, lookupParameters));
 	}
 
 	@Operation(summary = "Create an address", responses = {
