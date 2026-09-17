@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVRecord;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -80,69 +81,16 @@ public class ImportService {
 			}
 
 			try (var parser = format.parse(reader)) {
-				for (final var record : parser) {
+				for (final var csvRecord : parser) {
 					rowsProcessed++;
 					try {
-						final var streetAddress = normalizeStreetAddress(record.get("street_address"));
-						final var postalCode = normalizePostalCode(record.get("postal_code"));
-						final var postalArea = record.get("postal_area").trim();
-						final var restaurantNumber = record.get("restaurant_number").trim();
-						final var orgNumber = OrgNumberNormalizer.normalize(record.get("org_number"));
-						final var holderName = record.get("holder_name").trim();
-						final var premisesName = record.get("premises_name").trim();
-						final var validFrom = LocalDate.parse(record.get("valid_from").trim());
-						final var validToRaw = record.get("valid_to");
-						final var validTo = (validToRaw == null || validToRaw.isBlank()) ? null : LocalDate.parse(validToRaw.trim());
-						final var status = AssignmentStatus.valueOf(record.get("status").trim().toUpperCase(Locale.ROOT));
-
-						var address = addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId(streetAddress, postalCode, municipalityId).orElse(null);
-						if (address == null) {
-							address = addressRepository.save(AddressEntity.create()
-								.withStreetAddress(streetAddress)
-								.withPostalCode(postalCode)
-								.withPostalArea(postalArea)
-								.withMunicipalityId(municipalityId));
-							addressesCreated++;
-						}
-
-						var licenseHolder = licenseHolderRepository.findByOrgNumber(orgNumber).orElse(null);
-						if (licenseHolder == null) {
-							licenseHolder = licenseHolderRepository.save(LicenseHolderEntity.create()
-								.withOrgNumber(orgNumber)
-								.withName(holderName));
-							licenseHoldersCreated++;
-						}
-
-						var restaurantNumberEntity = restaurantNumberRepository.findByRestaurantNumber(restaurantNumber).orElse(null);
-						if (restaurantNumberEntity == null) {
-							restaurantNumberEntity = restaurantNumberRepository.save(RestaurantNumberEntity.create()
-								.withRestaurantNumber(restaurantNumber)
-								.withMunicipalityId(municipalityId)
-								.withAddress(address));
-							restaurantNumbersCreated++;
-							addressPerNumber.put(restaurantNumber, validFrom);
-						} else if (!restaurantNumberEntity.getAddress().getId().equals(address.getId())) {
-							// The register holds numbers that appear at more than one address. The number belongs to
-							// one address, so the most recent assignment decides which, and the case is reported.
-							conflictingAddresses.add(restaurantNumber);
-							if (validFrom.isAfter(addressPerNumber.getOrDefault(restaurantNumber, LocalDate.MIN))) {
-								restaurantNumberEntity.setAddress(address);
-								addressPerNumber.put(restaurantNumber, validFrom);
-							}
-						}
-
-						restaurantNumberAssignmentRepository.save(RestaurantNumberAssignmentEntity.create()
-							.withRestaurantNumber(restaurantNumberEntity)
-							.withLicenseHolder(licenseHolder)
-							.withAddress(address)
-							.withHolderName(holderName)
-							.withPremisesName(premisesName)
-							.withValidFrom(validFrom)
-							.withValidTo(validTo)
-							.withStatus(status));
+						final var created = importRow(municipalityId, csvRecord, conflictingAddresses, addressPerNumber);
+						addressesCreated += created.addresses();
+						licenseHoldersCreated += created.licenseHolders();
+						restaurantNumbersCreated += created.restaurantNumbers();
 						assignmentsCreated++;
 					} catch (final Exception e) {
-						addError(errors, "Row %d: %s".formatted(record.getRecordNumber(), sanitize(e.getMessage())));
+						addError(errors, "Row %d: %s".formatted(csvRecord.getRecordNumber(), sanitize(e.getMessage())));
 					}
 				}
 			}
@@ -156,6 +104,82 @@ public class ImportService {
 
 		return new ImportResult(rowsProcessed, addressesCreated, licenseHoldersCreated, restaurantNumbersCreated, assignmentsCreated, errors, List.copyOf(conflictingAddresses));
 	}
+
+	private CreatedCounts importRow(final String municipalityId, final CSVRecord csvRecord, final Set<String> conflictingAddresses, final Map<String, LocalDate> addressPerNumber) {
+		final var streetAddress = normalizeStreetAddress(csvRecord.get("street_address"));
+		final var postalCode = normalizePostalCode(csvRecord.get("postal_code"));
+		final var postalArea = csvRecord.get("postal_area").trim();
+		final var restaurantNumber = csvRecord.get("restaurant_number").trim();
+		final var orgNumber = OrgNumberNormalizer.normalize(csvRecord.get("org_number"));
+		final var holderName = csvRecord.get("holder_name").trim();
+		final var premisesName = csvRecord.get("premises_name").trim();
+		final var validFrom = LocalDate.parse(csvRecord.get("valid_from").trim());
+		final var validToRaw = csvRecord.get("valid_to");
+		final var validTo = (validToRaw == null || validToRaw.isBlank()) ? null : LocalDate.parse(validToRaw.trim());
+		final var status = AssignmentStatus.valueOf(csvRecord.get("status").trim().toUpperCase(Locale.ROOT));
+
+		var addressesCreated = 0;
+		var address = addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId(streetAddress, postalCode, municipalityId).orElse(null);
+		if (address == null) {
+			address = addressRepository.save(AddressEntity.create()
+				.withStreetAddress(streetAddress)
+				.withPostalCode(postalCode)
+				.withPostalArea(postalArea)
+				.withMunicipalityId(municipalityId));
+			addressesCreated = 1;
+		}
+
+		var licenseHoldersCreated = 0;
+		var licenseHolder = licenseHolderRepository.findByOrgNumber(orgNumber).orElse(null);
+		if (licenseHolder == null) {
+			licenseHolder = licenseHolderRepository.save(LicenseHolderEntity.create()
+				.withOrgNumber(orgNumber)
+				.withName(holderName));
+			licenseHoldersCreated = 1;
+		}
+
+		var restaurantNumbersCreated = 0;
+		var restaurantNumberEntity = restaurantNumberRepository.findByRestaurantNumber(restaurantNumber).orElse(null);
+		if (restaurantNumberEntity == null) {
+			restaurantNumberEntity = restaurantNumberRepository.save(RestaurantNumberEntity.create()
+				.withRestaurantNumber(restaurantNumber)
+				.withMunicipalityId(municipalityId)
+				.withAddress(address));
+			restaurantNumbersCreated = 1;
+			addressPerNumber.put(restaurantNumber, validFrom);
+		} else {
+			resolveAddressConflict(restaurantNumberEntity, address, validFrom, conflictingAddresses, addressPerNumber);
+		}
+
+		restaurantNumberAssignmentRepository.save(RestaurantNumberAssignmentEntity.create()
+			.withRestaurantNumber(restaurantNumberEntity)
+			.withLicenseHolder(licenseHolder)
+			.withAddress(address)
+			.withHolderName(holderName)
+			.withPremisesName(premisesName)
+			.withValidFrom(validFrom)
+			.withValidTo(validTo)
+			.withStatus(status));
+
+		return new CreatedCounts(addressesCreated, licenseHoldersCreated, restaurantNumbersCreated);
+	}
+
+	// The register holds numbers that appear at more than one address. The number belongs to one address, so
+	// the most recent assignment decides which, and the case is reported back to the caller.
+	private static void resolveAddressConflict(final RestaurantNumberEntity restaurantNumber, final AddressEntity address, final LocalDate validFrom,
+		final Set<String> conflictingAddresses, final Map<String, LocalDate> addressPerNumber) {
+		if (restaurantNumber.getAddress().getId().equals(address.getId())) {
+			return;
+		}
+
+		conflictingAddresses.add(restaurantNumber.getRestaurantNumber());
+		if (validFrom.isAfter(addressPerNumber.getOrDefault(restaurantNumber.getRestaurantNumber(), LocalDate.MIN))) {
+			restaurantNumber.setAddress(address);
+			addressPerNumber.put(restaurantNumber.getRestaurantNumber(), validFrom);
+		}
+	}
+
+	private record CreatedCounts(int addresses, int licenseHolders, int restaurantNumbers) {}
 
 	private static void addError(final List<String> errors, final String message) {
 		if (errors.size() < MAX_ERRORS) {

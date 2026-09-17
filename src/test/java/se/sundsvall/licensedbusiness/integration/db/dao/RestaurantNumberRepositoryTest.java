@@ -37,7 +37,7 @@ class RestaurantNumberRepositoryTest {
 	void findAvailableByMunicipalityIdAndAddressIdExcludesRestaurantNumberWithActiveAssignment() {
 		final var available = restaurantNumberRepository.findAvailableByMunicipalityIdAndAddressId(MUNICIPALITY_ID, "address-1");
 
-		assertThat(available).extracting("id").doesNotContain("rn-1", "rn-2");
+		assertThat(available).extracting("id").isNotEmpty().doesNotContain("rn-1", "rn-2");
 	}
 
 	@Test
@@ -52,8 +52,8 @@ class RestaurantNumberRepositoryTest {
 		final var atAddress1 = restaurantNumberRepository.findAvailableByMunicipalityIdAndAddressId(MUNICIPALITY_ID, "address-1");
 		final var atAddress6 = restaurantNumberRepository.findAvailableByMunicipalityIdAndAddressId(MUNICIPALITY_ID, "address-6");
 
-		assertThat(atAddress1).extracting("id").doesNotContain("rn-3", "rn-4");
-		assertThat(atAddress6).extracting("id").doesNotContain("rn-5");
+		assertThat(atAddress1).extracting("id").isNotEmpty().doesNotContain("rn-3", "rn-4");
+		assertThat(atAddress6).extracting("id").isNotEmpty().doesNotContain("rn-5");
 	}
 
 	@Test
