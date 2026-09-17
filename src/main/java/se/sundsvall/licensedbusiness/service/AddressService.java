@@ -1,5 +1,6 @@
 package se.sundsvall.licensedbusiness.service;
 
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -16,8 +17,6 @@ import se.sundsvall.licensedbusiness.api.model.Addresses;
 import se.sundsvall.licensedbusiness.integration.db.dao.AddressRepository;
 import se.sundsvall.licensedbusiness.integration.db.model.AddressEntity;
 import se.sundsvall.licensedbusiness.service.mapper.AddressMapper;
-
-import java.util.Optional;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
