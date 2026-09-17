@@ -82,14 +82,18 @@ class RestaurantNumberResource {
 		return ResponseEntity.ok(assignmentService.getLatestAssignment(municipalityId, restaurantNumber));
 	}
 
-	@Operation(summary = "Create a restaurant number, allocating the lowest free number in the municipality", responses = {
-		@ApiResponse(responseCode = "201", description = "Created", headers = @Header(name = LOCATION, schema = @Schema(type = "string"))),
-		@ApiResponse(responseCode = "409", description = "Conflict", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))
-	})
+	@Operation(summary = "Create a restaurant number for an address, allocating the lowest free number in the municipality",
+		description = "The restaurant number belongs to the premises and stays on the address when one business is replaced by the next.",
+		responses = {
+			@ApiResponse(responseCode = "201", description = "Created", headers = @Header(name = LOCATION, schema = @Schema(type = "string"))),
+			@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class))),
+			@ApiResponse(responseCode = "409", description = "Conflict", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))
+		})
 	@PostMapping
 	ResponseEntity<Void> createRestaurantNumber(
-		@Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @PathVariable @ValidMunicipalityId final String municipalityId) {
-		final var restaurantNumber = restaurantNumberService.createRestaurantNumber(municipalityId);
+		@Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @PathVariable @ValidMunicipalityId final String municipalityId,
+		@Parameter(name = "addressId", description = "Address ID", example = "9ce333ec-a473-438b-8406-a71e957dc107") @RequestParam @NotBlank final String addressId) {
+		final var restaurantNumber = restaurantNumberService.createRestaurantNumber(municipalityId, addressId);
 
 		return ResponseEntity.created(fromPath("/{municipalityId}/restaurant-numbers/{restaurantNumber}").buildAndExpand(municipalityId, restaurantNumber).toUri())
 			.header(CONTENT_TYPE, ALL_VALUE)

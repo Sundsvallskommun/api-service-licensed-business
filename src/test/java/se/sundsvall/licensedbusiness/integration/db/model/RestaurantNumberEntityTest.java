@@ -6,9 +6,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanConstructor;
-import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanEquals;
-import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanHashCode;
-import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanToString;
+import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanEqualsExcluding;
+import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanHashCodeExcluding;
+import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanToStringExcluding;
 import static com.google.code.beanmatchers.BeanMatchers.hasValidGettersAndSetters;
 import static com.google.code.beanmatchers.BeanMatchers.registerValueGenerator;
 import static java.time.ZoneOffset.UTC;
@@ -22,6 +22,7 @@ class RestaurantNumberEntityTest {
 	private static final String RESTAURANT_NUMBER = "22813670";
 	private static final String MUNICIPALITY_ID = "2281";
 	private static final OffsetDateTime CREATED = OffsetDateTime.of(2024, 6, 15, 12, 0, 0, 0, UTC);
+	private static final AddressEntity ADDRESS = AddressEntity.create().withId("9ce333ec-a473-438b-8406-a71e957dc107");
 	private static final AtomicInteger SEQUENCE = new AtomicInteger();
 
 	@BeforeAll
@@ -34,9 +35,9 @@ class RestaurantNumberEntityTest {
 		assertThat(RestaurantNumberEntity.class, allOf(
 			hasValidBeanConstructor(),
 			hasValidGettersAndSetters(),
-			hasValidBeanHashCode(),
-			hasValidBeanEquals(),
-			hasValidBeanToString()));
+			hasValidBeanHashCodeExcluding("address"),
+			hasValidBeanEqualsExcluding("address"),
+			hasValidBeanToStringExcluding("address")));
 	}
 
 	@Test
@@ -45,12 +46,14 @@ class RestaurantNumberEntityTest {
 			.withId(ID)
 			.withRestaurantNumber(RESTAURANT_NUMBER)
 			.withMunicipalityId(MUNICIPALITY_ID)
+			.withAddress(ADDRESS)
 			.withCreated(CREATED);
 
 		assertThat(restaurantNumberEntity.getId()).isEqualTo(ID);
 		assertThat(restaurantNumberEntity.getRestaurantNumber()).isEqualTo(RESTAURANT_NUMBER);
 		assertThat(restaurantNumberEntity.getMunicipalityId()).isEqualTo(MUNICIPALITY_ID);
 		assertThat(restaurantNumberEntity.getCreated()).isEqualTo(CREATED);
+		assertThat(restaurantNumberEntity.getAddress()).isEqualTo(ADDRESS);
 		assertThat(restaurantNumberEntity).hasNoNullFieldsOrProperties();
 	}
 
@@ -60,12 +63,14 @@ class RestaurantNumberEntityTest {
 		restaurantNumberEntity.setId(ID);
 		restaurantNumberEntity.setRestaurantNumber(RESTAURANT_NUMBER);
 		restaurantNumberEntity.setMunicipalityId(MUNICIPALITY_ID);
+		restaurantNumberEntity.setAddress(ADDRESS);
 		restaurantNumberEntity.setCreated(CREATED);
 
 		assertThat(restaurantNumberEntity.getId()).isEqualTo(ID);
 		assertThat(restaurantNumberEntity.getRestaurantNumber()).isEqualTo(RESTAURANT_NUMBER);
 		assertThat(restaurantNumberEntity.getMunicipalityId()).isEqualTo(MUNICIPALITY_ID);
 		assertThat(restaurantNumberEntity.getCreated()).isEqualTo(CREATED);
+		assertThat(restaurantNumberEntity.getAddress()).isEqualTo(ADDRESS);
 		assertThat(restaurantNumberEntity).hasNoNullFieldsOrProperties();
 	}
 

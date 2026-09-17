@@ -58,7 +58,7 @@ class RestaurantNumberIT extends AbstractAppTest {
 	@Test
 	void test03_createRestaurantNumberAllocatesTheLowestFreeNumber() {
 		final var location = setupCall()
-			.withServicePath(fromPath(PATH).build(MUNICIPALITY_ID).toString())
+			.withServicePath(fromPath(PATH).queryParam("addressId", "it-address-1").build(MUNICIPALITY_ID).toString())
 			.withHttpMethod(POST)
 			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
 			.withExpectedResponseStatus(CREATED)

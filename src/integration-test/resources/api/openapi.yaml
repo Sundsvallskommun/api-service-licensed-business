@@ -7,15 +7,17 @@ info:
     url: https://opensource.org/licenses/MIT
   version: "1.0"
 servers:
-- url: http://localhost:52207
+- url: http://localhost:49869
   description: Generated server url
 paths:
   /{municipalityId}/restaurant-numbers:
     post:
       tags:
       - Restaurant Number Resources
-      summary: "Create a restaurant number, allocating the lowest free number in the\
-        \ municipality"
+      summary: "Create a restaurant number for an address, allocating the lowest free\
+        \ number in the municipality"
+      description: The restaurant number belongs to the premises and stays on the
+        address when one business is replaced by the next.
       operationId: createRestaurantNumber
       parameters:
       - name: municipalityId
@@ -25,6 +27,14 @@ paths:
         schema:
           type: string
         example: 2281
+      - name: addressId
+        in: query
+        description: Address ID
+        required: true
+        schema:
+          type: string
+          minLength: 1
+        example: 9ce333ec-a473-438b-8406-a71e957dc107
       responses:
         "201":
           description: Created
@@ -33,6 +43,12 @@ paths:
               style: simple
               schema:
                 type: string
+        "404":
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "409":
           description: Conflict
           content:
@@ -801,6 +817,10 @@ components:
           type: integer
           format: int32
         errors:
+          type: array
+          items:
+            type: string
+        conflictingAddresses:
           type: array
           items:
             type: string

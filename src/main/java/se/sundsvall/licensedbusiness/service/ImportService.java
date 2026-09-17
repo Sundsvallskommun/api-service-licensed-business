@@ -6,8 +6,12 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import org.apache.commons.csv.CSVFormat;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,6 +63,8 @@ public class ImportService {
 		var restaurantNumbersCreated = 0;
 		var assignmentsCreated = 0;
 		final List<String> errors = new ArrayList<>();
+		final Set<String> conflictingAddresses = new TreeSet<>();
+		final Map<String, LocalDate> addressPerNumber = new HashMap<>();
 
 		final var format = CSVFormat.Builder.create(CSVFormat.DEFAULT)
 			.setHeader()
@@ -111,8 +117,18 @@ public class ImportService {
 						if (restaurantNumberEntity == null) {
 							restaurantNumberEntity = restaurantNumberRepository.save(RestaurantNumberEntity.create()
 								.withRestaurantNumber(restaurantNumber)
-								.withMunicipalityId(municipalityId));
+								.withMunicipalityId(municipalityId)
+								.withAddress(address));
 							restaurantNumbersCreated++;
+							addressPerNumber.put(restaurantNumber, validFrom);
+						} else if (!restaurantNumberEntity.getAddress().getId().equals(address.getId())) {
+							// The register holds numbers that appear at more than one address. The number belongs to
+							// one address, so the most recent assignment decides which, and the case is reported.
+							conflictingAddresses.add(restaurantNumber);
+							if (validFrom.isAfter(addressPerNumber.getOrDefault(restaurantNumber, LocalDate.MIN))) {
+								restaurantNumberEntity.setAddress(address);
+								addressPerNumber.put(restaurantNumber, validFrom);
+							}
 						}
 
 						restaurantNumberAssignmentRepository.save(RestaurantNumberAssignmentEntity.create()
@@ -138,7 +154,7 @@ public class ImportService {
 			throw Problem.valueOf(BAD_REQUEST, "Import failed, no data was saved: %s".formatted(String.join("; ", errors)));
 		}
 
-		return new ImportResult(rowsProcessed, addressesCreated, licenseHoldersCreated, restaurantNumbersCreated, assignmentsCreated, errors);
+		return new ImportResult(rowsProcessed, addressesCreated, licenseHoldersCreated, restaurantNumbersCreated, assignmentsCreated, errors, List.copyOf(conflictingAddresses));
 	}
 
 	private static void addError(final List<String> errors, final String message) {

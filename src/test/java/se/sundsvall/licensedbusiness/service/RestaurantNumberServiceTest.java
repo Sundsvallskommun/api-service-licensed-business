@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.licensedbusiness.integration.db.dao.AddressRepository;
 import se.sundsvall.licensedbusiness.integration.db.dao.RestaurantNumberRepository;
+import se.sundsvall.licensedbusiness.integration.db.model.AddressEntity;
 import se.sundsvall.licensedbusiness.integration.db.model.RestaurantNumberEntity;
 import se.sundsvall.licensedbusiness.service.mapper.RestaurantNumberMapper;
 
@@ -65,22 +66,24 @@ class RestaurantNumberServiceTest {
 
 	@Test
 	void createRestaurantNumberStartsAtOneInAnEmptyRegister() {
+		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(AddressEntity.create().withId(ADDRESS_ID).withMunicipalityId(MUNICIPALITY_ID)));
 		when(restaurantNumberRepository.findSequencedRestaurantNumbers(MUNICIPALITY_ID)).thenReturn(List.of());
 		when(restaurantNumberRepository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
 		final var restaurantNumberService = new RestaurantNumberService(restaurantNumberRepository, addressRepository, restaurantNumberMapper);
 
-		assertThat(restaurantNumberService.createRestaurantNumber(MUNICIPALITY_ID)).isEqualTo("22810001");
+		assertThat(restaurantNumberService.createRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID)).isEqualTo("22810001");
 	}
 
 	@Test
 	void createRestaurantNumberFillsTheLowestGapAndIgnoresNumbersOutsideTheFormat() {
+		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(AddressEntity.create().withId(ADDRESS_ID).withMunicipalityId(MUNICIPALITY_ID)));
 		when(restaurantNumberRepository.findSequencedRestaurantNumbers(MUNICIPALITY_ID)).thenReturn(List.of("22810001", "22810003", "22819814", "2281037x"));
 		when(restaurantNumberRepository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
 		final var restaurantNumberService = new RestaurantNumberService(restaurantNumberRepository, addressRepository, restaurantNumberMapper);
 
-		assertThat(restaurantNumberService.createRestaurantNumber(MUNICIPALITY_ID)).isEqualTo("22810002");
+		assertThat(restaurantNumberService.createRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID)).isEqualTo("22810002");
 
 		final var captor = ArgumentCaptor.forClass(RestaurantNumberEntity.class);
 		verify(restaurantNumberRepository).saveAndFlush(captor.capture());
@@ -90,6 +93,7 @@ class RestaurantNumberServiceTest {
 
 	@Test
 	void createRestaurantNumberRetriesWhenAnotherRequestTookTheNumber() {
+		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(AddressEntity.create().withId(ADDRESS_ID).withMunicipalityId(MUNICIPALITY_ID)));
 		when(restaurantNumberRepository.findSequencedRestaurantNumbers(MUNICIPALITY_ID))
 			.thenReturn(List.of("22810001"))
 			.thenReturn(List.of("22810001", "22810002"));
@@ -99,17 +103,18 @@ class RestaurantNumberServiceTest {
 
 		final var restaurantNumberService = new RestaurantNumberService(restaurantNumberRepository, addressRepository, restaurantNumberMapper);
 
-		assertThat(restaurantNumberService.createRestaurantNumber(MUNICIPALITY_ID)).isEqualTo("22810003");
+		assertThat(restaurantNumberService.createRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID)).isEqualTo("22810003");
 	}
 
 	@Test
 	void createRestaurantNumberGivesUpAfterThreeAttempts() {
+		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(AddressEntity.create().withId(ADDRESS_ID).withMunicipalityId(MUNICIPALITY_ID)));
 		when(restaurantNumberRepository.findSequencedRestaurantNumbers(MUNICIPALITY_ID)).thenReturn(List.of());
 		when(restaurantNumberRepository.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("duplicate"));
 
 		final var restaurantNumberService = new RestaurantNumberService(restaurantNumberRepository, addressRepository, restaurantNumberMapper);
 
-		assertThatThrownBy(() -> restaurantNumberService.createRestaurantNumber(MUNICIPALITY_ID))
+		assertThatThrownBy(() -> restaurantNumberService.createRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID))
 			.isInstanceOf(Problem.class)
 			.hasMessageContaining("Could not allocate a restaurant number")
 			.extracting("status").isEqualTo(CONFLICT);
@@ -124,7 +129,7 @@ class RestaurantNumberServiceTest {
 			every later attempt fails too, and the endpoint starts answering 409 as soon as two requests overlap. \
 			Keep the method and its class free of @Transactional, and do not call it from a transactional method.""";
 
-		final var method = RestaurantNumberService.class.getMethod("createRestaurantNumber", String.class);
+		final var method = RestaurantNumberService.class.getMethod("createRestaurantNumber", String.class, String.class);
 
 		assertThat(method.getAnnotation(Transactional.class)).as(reason).isNull();
 		assertThat(method.getAnnotation(jakarta.transaction.Transactional.class)).as(reason).isNull();

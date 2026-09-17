@@ -25,6 +25,7 @@ CREATE TABLE restaurant_number
     id                VARCHAR(36) NOT NULL,
     restaurant_number VARCHAR(20) NOT NULL,
     municipality_id   VARCHAR(6)  NOT NULL,
+    address_id        VARCHAR(36) NOT NULL,
     created           datetime    NULL,
     CONSTRAINT PK_RESTAURANT_NUMBER PRIMARY KEY (id),
     CONSTRAINT UK_RESTAURANT_NUMBER UNIQUE (restaurant_number)
@@ -59,6 +60,11 @@ CREATE TABLE shedlock
 CREATE INDEX IDX_RESTAURANT_NUMBER_MUNICIPALITY_ID ON restaurant_number (municipality_id);
 
 CREATE INDEX IDX_ADDRESS_MUNICIPALITY_ID ON address (municipality_id);
+
+ALTER TABLE restaurant_number
+    ADD CONSTRAINT FK_RESTAURANT_NUMBER_ADDRESS FOREIGN KEY (address_id) REFERENCES address (id);
+
+CREATE INDEX IDX_RESTAURANT_NUMBER_ADDRESS_ID ON restaurant_number (address_id);
 
 ALTER TABLE restaurant_number_assignment
     ADD CONSTRAINT FK_ASSIGNMENT_RESTAURANT_NUMBER FOREIGN KEY (restaurant_number_id) REFERENCES restaurant_number (id);

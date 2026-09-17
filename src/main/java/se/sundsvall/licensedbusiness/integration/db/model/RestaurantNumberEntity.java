@@ -2,10 +2,13 @@ package se.sundsvall.licensedbusiness.integration.db.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -18,7 +21,8 @@ import static org.hibernate.annotations.TimeZoneStorageType.NORMALIZE;
 
 @Entity
 @Table(name = "restaurant_number", indexes = {
-	@Index(name = "IDX_RESTAURANT_NUMBER_MUNICIPALITY_ID", columnList = "municipality_id")
+	@Index(name = "IDX_RESTAURANT_NUMBER_MUNICIPALITY_ID", columnList = "municipality_id"),
+	@Index(name = "IDX_RESTAURANT_NUMBER_ADDRESS_ID", columnList = "address_id")
 }, uniqueConstraints = {
 	@UniqueConstraint(name = "UK_RESTAURANT_NUMBER", columnNames = {
 		"restaurant_number"
@@ -36,6 +40,12 @@ public class RestaurantNumberEntity {
 
 	@Column(name = "municipality_id", nullable = false, length = 6)
 	private String municipalityId;
+
+	// The restaurant number belongs to the premises, not to the business, so it stays on the address when
+	// one holder is replaced by the next. The address on an assignment is where that assignment ran.
+	@ManyToOne(optional = false)
+	@JoinColumn(name = "address_id", nullable = false, foreignKey = @ForeignKey(name = "FK_RESTAURANT_NUMBER_ADDRESS"))
+	private AddressEntity address;
 
 	@Column(name = "created", columnDefinition = "DATETIME")
 	@TimeZoneStorage(NORMALIZE)
@@ -89,6 +99,19 @@ public class RestaurantNumberEntity {
 		return this;
 	}
 
+	public AddressEntity getAddress() {
+		return address;
+	}
+
+	public void setAddress(AddressEntity address) {
+		this.address = address;
+	}
+
+	public RestaurantNumberEntity withAddress(AddressEntity address) {
+		this.address = address;
+		return this;
+	}
+
 	public OffsetDateTime getCreated() {
 		return created;
 	}
@@ -102,6 +125,7 @@ public class RestaurantNumberEntity {
 		return this;
 	}
 
+	// address is intentionally excluded from equals/hashCode/toString to avoid touching lazy proxies.
 	@Override
 	public boolean equals(Object o) {
 		if (o == null || getClass() != o.getClass())

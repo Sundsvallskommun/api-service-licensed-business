@@ -123,6 +123,20 @@ class AssignmentIT extends AbstractAppTest {
 			.sendRequestAndVerifyResponse();
 	}
 
+	// The restaurant number belongs to the premises, so it cannot be assigned at another address.
+	@Test
+	void test09_createAssignmentAtAnAddressTheNumberDoesNotBelongTo() {
+		setupCall()
+			.withServicePath(fromPath(PATH).build(MUNICIPALITY_ID).toString())
+			.withHttpMethod(POST)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withRequest(REQUEST_FILE)
+			.withExpectedResponseStatus(BAD_REQUEST)
+			.withExpectedResponseHeader(CONTENT_TYPE, List.of(APPLICATION_PROBLEM_JSON_VALUE))
+			.withExpectedResponse(RESPONSE_FILE)
+			.sendRequestAndVerifyResponse();
+	}
+
 	@Test
 	void test06_createAssignmentForUnknownAddress() {
 		setupCall()

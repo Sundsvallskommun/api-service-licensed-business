@@ -4,5 +4,6 @@
 	"licenseHoldersCreated": 1,
 	"restaurantNumbersCreated": 2,
 	"assignmentsCreated": 2,
-	"errors": []
+	"errors": [],
+	"conflictingAddresses": []
 }

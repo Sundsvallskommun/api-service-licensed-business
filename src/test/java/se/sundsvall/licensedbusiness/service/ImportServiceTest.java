@@ -49,7 +49,7 @@ class ImportServiceTest {
 		final var savedStorgatan = AddressEntity.create().withId("address-1").withStreetAddress("Storgatan 1").withPostalCode("852 30");
 		final var savedHolderA = LicenseHolderEntity.create().withId("holder-1").withOrgNumber("556611-2233");
 		final var savedHolderB = LicenseHolderEntity.create().withId("holder-2").withOrgNumber("556699-8877");
-		final var savedRestaurantNumber = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("1001");
+		final var savedRestaurantNumber = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("1001").withAddress(savedStorgatan);
 
 		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID))
 			.thenReturn(Optional.empty(), Optional.of(savedStorgatan));
@@ -87,11 +87,11 @@ class ImportServiceTest {
 	}
 
 	@Test
-	void importRestaurantNumbersLetsRestaurantNumberMoveBetweenAddresses() {
+	void importRestaurantNumbersLetsTheMostRecentRowDecideTheAddressOfANumber() {
 		final var savedStorgatan = AddressEntity.create().withId("address-1").withStreetAddress("Storgatan 1").withPostalCode("852 30");
 		final var savedKajplats = AddressEntity.create().withId("address-2").withStreetAddress("Kajplats 1").withPostalCode("851 02");
 		final var savedHolder = LicenseHolderEntity.create().withId("holder-1").withOrgNumber("556611-2233");
-		final var savedRestaurantNumber = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("1001");
+		final var savedRestaurantNumber = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("1001").withAddress(savedStorgatan);
 
 		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID)).thenReturn(Optional.of(savedStorgatan));
 		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Kajplats 1", "851 02", MUNICIPALITY_ID)).thenReturn(Optional.of(savedKajplats));
@@ -112,6 +112,11 @@ class ImportServiceTest {
 		assertThat(result.restaurantNumbersCreated()).isEqualTo(1);
 		assertThat(result.assignmentsCreated()).isEqualTo(2);
 		assertThat(result.errors()).isEmpty();
+		assertThat(result.conflictingAddresses()).containsExactly("1001");
+
+		// The number belongs to one address, and the most recent row decides which. The assignments keep the
+		// address they actually ran at.
+		assertThat(savedRestaurantNumber.getAddress()).isEqualTo(savedKajplats);
 
 		final var assignmentCaptor = ArgumentCaptor.forClass(RestaurantNumberAssignmentEntity.class);
 		verify(restaurantNumberAssignmentRepository, times(2)).save(assignmentCaptor.capture());
@@ -122,7 +127,7 @@ class ImportServiceTest {
 	void importRestaurantNumbersNormalizesAddressBeforeLookup() {
 		final var savedStorgatan = AddressEntity.create().withId("address-1").withStreetAddress("Storgatan 1").withPostalCode("852 30");
 		final var savedHolder = LicenseHolderEntity.create().withId("holder-1").withOrgNumber("556611-2233");
-		final var savedRestaurantNumber = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("1001");
+		final var savedRestaurantNumber = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("1001").withAddress(savedStorgatan);
 
 		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID)).thenReturn(Optional.of(savedStorgatan));
 		when(licenseHolderRepository.findByOrgNumber("556611-2233")).thenReturn(Optional.of(savedHolder));
@@ -166,7 +171,7 @@ class ImportServiceTest {
 	void importRestaurantNumbersStripsUtf8Bom() {
 		final var savedStorgatan = AddressEntity.create().withId("address-1").withStreetAddress("Storgatan 1").withPostalCode("852 30");
 		final var savedHolder = LicenseHolderEntity.create().withId("holder-1").withOrgNumber("556611-2233");
-		final var savedRestaurantNumber = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("1001");
+		final var savedRestaurantNumber = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("1001").withAddress(savedStorgatan);
 
 		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID)).thenReturn(Optional.empty());
 		when(addressRepository.save(any())).thenReturn(savedStorgatan);
