@@ -10,6 +10,7 @@ import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.licensedbusiness.api.model.RestaurantNumber;
 import se.sundsvall.licensedbusiness.integration.db.dao.AddressRepository;
 import se.sundsvall.licensedbusiness.integration.db.dao.RestaurantNumberRepository;
+import se.sundsvall.licensedbusiness.integration.db.model.AddressEntity;
 import se.sundsvall.licensedbusiness.integration.db.model.RestaurantNumberEntity;
 import se.sundsvall.licensedbusiness.service.mapper.RestaurantNumberMapper;
 
@@ -45,9 +46,13 @@ public class RestaurantNumberService {
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Restaurant number %s not found".formatted(sanitize(restaurantNumber))));
 	}
 
-	public String createRestaurantNumber(final String municipalityId) {
+	public String createRestaurantNumber(final String municipalityId, final String addressId) {
+		final var address = addressRepository.findById(addressId)
+			.filter(entity -> municipalityId.equals(entity.getMunicipalityId()))
+			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Address %s not found".formatted(sanitize(addressId))));
+
 		for (var attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-			final var allocated = allocateNextFreeRestaurantNumber(municipalityId);
+			final var allocated = allocateNextFreeRestaurantNumber(municipalityId, address);
 			if (allocated.isPresent()) {
 				return allocated.get();
 			}
@@ -56,12 +61,13 @@ public class RestaurantNumberService {
 		throw Problem.valueOf(CONFLICT, "Could not allocate a restaurant number for municipality %s, please try again".formatted(sanitize(municipalityId)));
 	}
 
-	private Optional<String> allocateNextFreeRestaurantNumber(final String municipalityId) {
+	private Optional<String> allocateNextFreeRestaurantNumber(final String municipalityId, final AddressEntity address) {
 		final var restaurantNumber = nextFreeRestaurantNumber(municipalityId);
 		try {
 			restaurantNumberRepository.saveAndFlush(RestaurantNumberEntity.create()
 				.withRestaurantNumber(restaurantNumber)
-				.withMunicipalityId(municipalityId));
+				.withMunicipalityId(municipalityId)
+				.withAddress(address));
 
 			return Optional.of(restaurantNumber);
 		} catch (final DataIntegrityViolationException numberTakenByConcurrentRequest) {

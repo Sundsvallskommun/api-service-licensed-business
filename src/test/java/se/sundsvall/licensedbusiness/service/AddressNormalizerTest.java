@@ -15,6 +15,12 @@ class AddressNormalizerTest {
 		"  Storgatan 1  |Storgatan 1",
 		"Storgatan   1|Storgatan 1",
 		"Storgatan\t1|Storgatan 1",
+		"Storgatan 1A|Storgatan 1A",
+		"Storgatan 1 A|Storgatan 1A",
+		"Storgatan 1 a|Storgatan 1a",
+		"Storgatan 1   B|Storgatan 1B",
+		"Storgatan 1 tr|Storgatan 1 tr",
+		"Kajplats 1|Kajplats 1",
 		"Storgatan 1|Storgatan 1",
 		" Storgatan 1 |Storgatan 1"
 	})

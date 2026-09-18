@@ -1,10 +1,13 @@
 package se.sundsvall.licensedbusiness.service;
 
+import java.net.URI;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -13,6 +16,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.licensedbusiness.api.model.Address;
+import se.sundsvall.licensedbusiness.api.model.AddressLookupParameters;
 import se.sundsvall.licensedbusiness.api.model.AddressPagingParameters;
 import se.sundsvall.licensedbusiness.api.model.AddressSearchParameters;
 import se.sundsvall.licensedbusiness.integration.db.dao.AddressRepository;
@@ -26,12 +30,14 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @ExtendWith(MockitoExtension.class)
 class AddressServiceTest {
 
 	private static final String MUNICIPALITY_ID = "2281";
 	private static final String ADDRESS_ID = "address-1";
+	private static final String OTHER_MUNICIPALITY_ID = "2260";
 
 	@Mock
 	private AddressRepository addressRepository;
@@ -85,6 +91,131 @@ class AddressServiceTest {
 			.hasMessageContaining("Address Storgatan 1, 852 30 already exists with ID " + ADDRESS_ID)
 			.extracting("status").isEqualTo(CONFLICT);
 		verify(addressRepository, never()).save(any());
+	}
+
+	@Test
+	void createAddressWithExistingAddressCarriesTheExistingIdAsInstance() {
+		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID))
+			.thenReturn(Optional.of(AddressEntity.create().withId(ADDRESS_ID)));
+
+		final var addressService = new AddressService(addressRepository, addressMapper);
+		final var address = Address.create().withStreetAddress("Storgatan 1").withPostalCode("852 30");
+
+		assertThatThrownBy(() -> addressService.createAddress(MUNICIPALITY_ID, address))
+			.isInstanceOf(Problem.class)
+			.extracting("instance").isEqualTo(URI.create("/2281/addresses/" + ADDRESS_ID));
+	}
+
+	@ParameterizedTest
+	@CsvSource(delimiter = '|', ignoreLeadingAndTrailingWhitespace = false, value = {
+		"Storgatan 1|852 30",
+		"Storgatan 1|85230",
+		"  Storgatan   1  |  852 30  "
+	})
+	void lookupAddressNormalizesBeforeLookup(final String streetAddress, final String postalCode) {
+		final var entity = AddressEntity.create()
+			.withId(ADDRESS_ID)
+			.withStreetAddress("Storgatan 1")
+			.withPostalCode("852 30")
+			.withMunicipalityId(MUNICIPALITY_ID);
+		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId(any(), any(), any())).thenReturn(Optional.of(entity));
+
+		final var addressService = new AddressService(addressRepository, addressMapper);
+		final var result = addressService.lookupAddress(MUNICIPALITY_ID, lookupParameters(streetAddress, postalCode));
+
+		assertThat(result.getId()).isEqualTo(ADDRESS_ID);
+		verify(addressRepository).findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID);
+	}
+
+	@ParameterizedTest
+	@CsvSource(delimiter = '|', value = {
+		"Storgatan 1A",
+		"Storgatan 1 A",
+		"Storgatan 1 a"
+	})
+	void lookupAddressMatchesHouseNumberLetterInBothForms(final String streetAddress) {
+		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId(any(), any(), any()))
+			.thenReturn(Optional.of(AddressEntity.create().withId(ADDRESS_ID)));
+
+		final var addressService = new AddressService(addressRepository, addressMapper);
+		addressService.lookupAddress(MUNICIPALITY_ID, lookupParameters(streetAddress, "852 30"));
+
+		final var captor = ArgumentCaptor.forClass(String.class);
+		verify(addressRepository).findByStreetAddressAndPostalCodeAndMunicipalityId(captor.capture(), any(), any());
+		assertThat(captor.getValue()).isEqualToIgnoringCase("Storgatan 1A");
+	}
+
+	@Test
+	void lookupAddressReturnsTheWholeAddress() {
+		final var created = OffsetDateTime.now();
+		final var entity = AddressEntity.create()
+			.withId(ADDRESS_ID)
+			.withStreetAddress("Storgatan 1")
+			.withPostalCode("852 30")
+			.withPostalArea("Sundsvall")
+			.withMunicipalityId(MUNICIPALITY_ID)
+			.withCreated(created);
+		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID)).thenReturn(Optional.of(entity));
+
+		final var addressService = new AddressService(addressRepository, addressMapper);
+		final var result = addressService.lookupAddress(MUNICIPALITY_ID, lookupParameters("Storgatan 1", "852 30"));
+
+		assertThat(result.getId()).isEqualTo(ADDRESS_ID);
+		assertThat(result.getStreetAddress()).isEqualTo("Storgatan 1");
+		assertThat(result.getPostalCode()).isEqualTo("852 30");
+		assertThat(result.getPostalArea()).isEqualTo("Sundsvall");
+		assertThat(result.getMunicipalityId()).isEqualTo(MUNICIPALITY_ID);
+		assertThat(result.getCreated()).isEqualTo(created);
+	}
+
+	@Test
+	void lookupAddressNotFound() {
+		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID)).thenReturn(Optional.empty());
+
+		final var addressService = new AddressService(addressRepository, addressMapper);
+		final var parameters = lookupParameters("Storgatan 1", "852 30");
+
+		assertThatThrownBy(() -> addressService.lookupAddress(MUNICIPALITY_ID, parameters))
+			.isInstanceOf(Problem.class)
+			.hasMessageContaining("Address Storgatan 1, 852 30 not found")
+			.extracting("status").isEqualTo(NOT_FOUND);
+	}
+
+	@Test
+	void lookupAddressInOtherMunicipalityIsNotAHit() {
+		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", OTHER_MUNICIPALITY_ID)).thenReturn(Optional.empty());
+
+		final var addressService = new AddressService(addressRepository, addressMapper);
+		final var parameters = lookupParameters("Storgatan 1", "852 30");
+
+		assertThatThrownBy(() -> addressService.lookupAddress(OTHER_MUNICIPALITY_ID, parameters))
+			.isInstanceOf(Problem.class)
+			.extracting("status").isEqualTo(NOT_FOUND);
+	}
+
+	@Test
+	void lookupMissIsFollowedByACreateThatDoesNotConflict() {
+		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("storgatan 1a", "852 30", MUNICIPALITY_ID)).thenReturn(Optional.empty());
+		when(addressRepository.save(any())).thenAnswer(invocation -> ((AddressEntity) invocation.getArgument(0)).withId(ADDRESS_ID));
+
+		final var addressService = new AddressService(addressRepository, addressMapper);
+
+		assertThatThrownBy(() -> addressService.lookupAddress(MUNICIPALITY_ID, lookupParameters("storgatan 1 a", "85230")))
+			.isInstanceOf(Problem.class)
+			.extracting("status").isEqualTo(NOT_FOUND);
+
+		final var result = addressService.createAddress(MUNICIPALITY_ID, Address.create()
+			.withStreetAddress("storgatan 1 a")
+			.withPostalCode("85230"));
+
+		assertThat(result).isEqualTo(ADDRESS_ID);
+	}
+
+	private static AddressLookupParameters lookupParameters(final String streetAddress, final String postalCode) {
+		final var parameters = new AddressLookupParameters();
+		parameters.setStreetAddress(streetAddress);
+		parameters.setPostalCode(postalCode);
+		return parameters;
 	}
 
 	@Test

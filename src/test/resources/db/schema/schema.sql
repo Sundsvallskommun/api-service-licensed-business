@@ -21,6 +21,7 @@
         municipality_id varchar(6) not null,
         created DATETIME,
         restaurant_number varchar(20) not null,
+        address_id varchar(36) not null,
         id varchar(36) not null,
         primary key (id)
     ) engine=InnoDB;
@@ -53,6 +54,9 @@
     create index IDX_RESTAURANT_NUMBER_MUNICIPALITY_ID 
        on restaurant_number (municipality_id);
 
+    create index IDX_RESTAURANT_NUMBER_ADDRESS_ID 
+       on restaurant_number (address_id);
+
     alter table if exists restaurant_number 
        add constraint UK_RESTAURANT_NUMBER unique (restaurant_number);
 
@@ -67,6 +71,11 @@
 
     create index IDX_ASSIGNMENT_STATUS_VALID_TO 
        on restaurant_number_assignment (status, valid_to);
+
+    alter table if exists restaurant_number 
+       add constraint FK_RESTAURANT_NUMBER_ADDRESS 
+       foreign key (address_id) 
+       references address (id);
 
     alter table if exists restaurant_number_assignment 
        add constraint FK_ASSIGNMENT_ADDRESS 

@@ -1,6 +1,8 @@
 package se.sundsvall.licensedbusiness.integration.db.dao;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
@@ -10,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace.NONE;
+import static se.sundsvall.licensedbusiness.service.AddressNormalizer.normalizePostalCode;
+import static se.sundsvall.licensedbusiness.service.AddressNormalizer.normalizeStreetAddress;
 
 /**
  * AddressRepository tests.
@@ -32,7 +36,7 @@ class AddressRepositoryTest {
 	void findAllByMunicipalityId() {
 		final var page = addressRepository.findAllByMunicipalityId(MUNICIPALITY_ID, PageRequest.of(0, 20));
 
-		assertThat(page.getTotalElements()).isEqualTo(15);
+		assertThat(page.getTotalElements()).isEqualTo(16);
 		assertThat(page.getContent()).allMatch(entity -> MUNICIPALITY_ID.equals(entity.getMunicipalityId()));
 	}
 
@@ -43,7 +47,7 @@ class AddressRepositoryTest {
 
 		assertThat(firstPage.getTotalPages()).isEqualTo(2);
 		assertThat(firstPage.getContent()).hasSize(10);
-		assertThat(secondPage.getContent()).hasSize(5);
+		assertThat(secondPage.getContent()).hasSize(6);
 	}
 
 	@Test
@@ -81,6 +85,45 @@ class AddressRepositoryTest {
 		final var page = addressRepository.findAllByMunicipalityIdAndStreetAddressContainingIgnoreCase(MUNICIPALITY_ID, "nonexistent", PageRequest.of(0, 20));
 
 		assertThat(page.getTotalElements()).isZero();
+	}
+
+	@Test
+	void findByStreetAddressAndPostalCodeAndMunicipalityId() {
+		final var entity = addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID);
+
+		assertThat(entity).get().extracting("id").isEqualTo("address-1");
+	}
+
+	@ParameterizedTest
+	@CsvSource(delimiter = '|', value = {
+		"Kajplats 3B|851 04",
+		"kajplats 3b|851 04",
+		"KAJPLATS 3B|851 04"
+	})
+	void findByStreetAddressAndPostalCodeAndMunicipalityIdIsCaseInsensitive(final String streetAddress, final String postalCode) {
+		final var entity = addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId(streetAddress, postalCode, MUNICIPALITY_ID);
+
+		assertThat(entity).get().extracting("id").isEqualTo("address-19");
+	}
+
+	@ParameterizedTest
+	@CsvSource(delimiter = '|', value = {
+		"Kajplats 3B|851 04",
+		"Kajplats 3 B|851 04",
+		"  kajplats   3 b  |85104"
+	})
+	void normalizedInputFindsTheStoredAddress(final String streetAddress, final String postalCode) {
+		final var entity = addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId(
+			normalizeStreetAddress(streetAddress), normalizePostalCode(postalCode), MUNICIPALITY_ID);
+
+		assertThat(entity).get().extracting("id").isEqualTo("address-19");
+	}
+
+	@Test
+	void findByStreetAddressAndPostalCodeAndMunicipalityIdExcludesOtherMunicipalities() {
+		final var entity = addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Kajplats 3B", "851 04", OTHER_MUNICIPALITY_ID);
+
+		assertThat(entity).isEmpty();
 	}
 
 	@Test

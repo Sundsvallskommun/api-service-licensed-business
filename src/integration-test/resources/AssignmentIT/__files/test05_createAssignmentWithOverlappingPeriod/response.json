@@ -1,0 +1,5 @@
+{
+	"title": "Bad Request",
+	"status": 400,
+	"detail": "The period 2019-01-01 to 2021-12-31 overlaps assignment it-assignment-1, which runs from 2020-01-01 to null"
+}

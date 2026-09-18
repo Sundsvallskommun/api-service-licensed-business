@@ -1,8 +1,8 @@
 CREATE TABLE address
 (
     id              VARCHAR(36)  NOT NULL,
-    street_address  VARCHAR(255) NOT NULL,
-    postal_code     VARCHAR(10)  NOT NULL,
+    street_address  VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_swedish_ci NOT NULL,
+    postal_code     VARCHAR(10)  CHARACTER SET utf8mb4 COLLATE utf8mb4_swedish_ci NOT NULL,
     postal_area     VARCHAR(100) NULL,
     municipality_id VARCHAR(6)   NOT NULL,
     created         datetime     NULL,
@@ -25,6 +25,7 @@ CREATE TABLE restaurant_number
     id                VARCHAR(36) NOT NULL,
     restaurant_number VARCHAR(20) NOT NULL,
     municipality_id   VARCHAR(6)  NOT NULL,
+    address_id        VARCHAR(36) NOT NULL,
     created           datetime    NULL,
     CONSTRAINT PK_RESTAURANT_NUMBER PRIMARY KEY (id),
     CONSTRAINT UK_RESTAURANT_NUMBER UNIQUE (restaurant_number)
@@ -32,22 +33,38 @@ CREATE TABLE restaurant_number
 
 CREATE TABLE restaurant_number_assignment
 (
-    id                    VARCHAR(36)  NOT NULL,
+    id                   VARCHAR(36)  NOT NULL,
     restaurant_number_id VARCHAR(36)  NOT NULL,
     license_holder_id    VARCHAR(36)  NOT NULL,
-    address_id            VARCHAR(36)  NOT NULL,
-    holder_name           VARCHAR(255) NULL,
-    premises_name         VARCHAR(255) NULL,
-    valid_from             date         NOT NULL,
-    valid_to               date         NULL,
-    status                 VARCHAR(50)  NULL,
-    created                datetime     NULL,
+    address_id           VARCHAR(36)  NOT NULL,
+    holder_name          VARCHAR(255) NULL,
+    premises_name        VARCHAR(255) NULL,
+    valid_from           date         NOT NULL,
+    valid_to             date         NULL,
+    status               VARCHAR(50)  NULL,
+    version              BIGINT       NOT NULL DEFAULT 0,
+    created              datetime     NULL,
+    modified             datetime     NULL,
     CONSTRAINT PK_RESTAURANT_NUMBER_ASSIGNMENT PRIMARY KEY (id)
+);
+
+CREATE TABLE shedlock
+(
+    name       VARCHAR(64)  NOT NULL,
+    lock_until timestamp(3) NOT NULL,
+    locked_at  timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    locked_by  VARCHAR(255) NOT NULL,
+    CONSTRAINT pk_shedlock PRIMARY KEY (name)
 );
 
 CREATE INDEX IDX_RESTAURANT_NUMBER_MUNICIPALITY_ID ON restaurant_number (municipality_id);
 
 CREATE INDEX IDX_ADDRESS_MUNICIPALITY_ID ON address (municipality_id);
+
+ALTER TABLE restaurant_number
+    ADD CONSTRAINT FK_RESTAURANT_NUMBER_ADDRESS FOREIGN KEY (address_id) REFERENCES address (id);
+
+CREATE INDEX IDX_RESTAURANT_NUMBER_ADDRESS_ID ON restaurant_number (address_id);
 
 ALTER TABLE restaurant_number_assignment
     ADD CONSTRAINT FK_ASSIGNMENT_RESTAURANT_NUMBER FOREIGN KEY (restaurant_number_id) REFERENCES restaurant_number (id);
@@ -64,4 +81,4 @@ ALTER TABLE restaurant_number_assignment
 
 CREATE INDEX IDX_ASSIGNMENT_ADDRESS_ID ON restaurant_number_assignment (address_id);
 
-CREATE INDEX IDX_ASSIGNMENT_VALID_TO ON restaurant_number_assignment (valid_to);
+CREATE INDEX IDX_ASSIGNMENT_STATUS_VALID_TO ON restaurant_number_assignment (status, valid_to);

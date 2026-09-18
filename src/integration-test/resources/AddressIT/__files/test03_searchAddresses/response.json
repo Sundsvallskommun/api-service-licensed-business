@@ -1,0 +1,27 @@
+{
+	"_meta": {
+		"page": 1,
+		"limit": "${json-unit.any-number}",
+		"count": 2,
+		"totalRecords": 2,
+		"totalPages": 1
+	},
+	"content": [
+		{
+			"id": "it-address-1",
+			"streetAddress": "Provgatan 1",
+			"postalCode": "852 30",
+			"postalArea": "Sundsvall",
+			"municipalityId": "2281",
+			"created": "${json-unit.any-string}"
+		},
+		{
+			"id": "it-address-2",
+			"streetAddress": "Provgatan 3B",
+			"postalCode": "852 30",
+			"postalArea": "Sundsvall",
+			"municipalityId": "2281",
+			"created": "${json-unit.any-string}"
+		}
+	]
+}

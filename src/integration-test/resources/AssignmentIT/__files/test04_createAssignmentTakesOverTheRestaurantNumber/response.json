@@ -1,0 +1,28 @@
+{
+	"id": "${json-unit.any-string}",
+	"restaurantNumber": {
+		"id": "it-number-1",
+		"number": "22810001",
+		"municipalityId": "2281",
+		"created": "${json-unit.any-string}"
+	},
+	"address": {
+		"id": "it-address-1",
+		"streetAddress": "Provgatan 1",
+		"postalCode": "852 30",
+		"postalArea": "Sundsvall",
+		"municipalityId": "2281",
+		"created": "${json-unit.any-string}"
+	},
+	"licenseHolder": {
+		"id": "it-holder-2",
+		"orgNumber": "556600-3344",
+		"name": "Provkrogen HB",
+		"created": "${json-unit.any-string}"
+	},
+	"holderName": "Provkrogen HB",
+	"premisesName": "Övertagen krog",
+	"validFrom": "2026-03-01",
+	"status": "ACTIVE",
+	"created": "${json-unit.any-string}"
+}

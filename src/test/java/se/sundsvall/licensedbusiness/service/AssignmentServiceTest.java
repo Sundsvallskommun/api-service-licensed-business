@@ -67,7 +67,7 @@ class AssignmentServiceTest {
 	}
 
 	private static RestaurantNumberEntity restaurantNumberEntity() {
-		return RestaurantNumberEntity.create().withId(RESTAURANT_NUMBER_ID).withRestaurantNumber(RESTAURANT_NUMBER).withMunicipalityId(MUNICIPALITY_ID);
+		return RestaurantNumberEntity.create().withId(RESTAURANT_NUMBER_ID).withRestaurantNumber(RESTAURANT_NUMBER).withMunicipalityId(MUNICIPALITY_ID).withAddress(addressEntity());
 	}
 
 	private static AddressEntity addressEntity() {

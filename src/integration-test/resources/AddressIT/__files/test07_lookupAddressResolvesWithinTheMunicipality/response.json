@@ -1,0 +1,8 @@
+{
+	"id": "it-address-4",
+	"streetAddress": "Provgatan 1",
+	"postalCode": "852 30",
+	"postalArea": "Ånge",
+	"municipalityId": "2260",
+	"created": "${json-unit.any-string}"
+}

@@ -1,0 +1,5 @@
+{
+	"title": "Bad Request",
+	"status": 400,
+	"detail": "Restaurant number 22810001 belongs to address it-address-1 and cannot be assigned at address it-address-3"
+}

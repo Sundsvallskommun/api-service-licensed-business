@@ -24,7 +24,7 @@ class ImportResourceTest {
 	@Test
 	void importRestaurantNumbers() {
 		final var file = new MockMultipartFile("file", "import.csv", "text/csv", new byte[0]);
-		final var expected = new ImportResult(1, 1, 1, 1, 1, List.of());
+		final var expected = new ImportResult(1, 1, 1, 1, 1, List.of(), List.of());
 		when(importService.importRestaurantNumbers(MUNICIPALITY_ID, file)).thenReturn(expected);
 
 		final var importResource = new ImportResource(importService);

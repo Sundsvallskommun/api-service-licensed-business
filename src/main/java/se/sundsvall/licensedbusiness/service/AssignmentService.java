@@ -13,6 +13,7 @@ import se.sundsvall.licensedbusiness.integration.db.dao.AddressRepository;
 import se.sundsvall.licensedbusiness.integration.db.dao.LicenseHolderRepository;
 import se.sundsvall.licensedbusiness.integration.db.dao.RestaurantNumberAssignmentRepository;
 import se.sundsvall.licensedbusiness.integration.db.dao.RestaurantNumberRepository;
+import se.sundsvall.licensedbusiness.integration.db.model.AddressEntity;
 import se.sundsvall.licensedbusiness.integration.db.model.LicenseHolderEntity;
 import se.sundsvall.licensedbusiness.integration.db.model.RestaurantNumberAssignmentEntity;
 import se.sundsvall.licensedbusiness.integration.db.model.RestaurantNumberEntity;
@@ -73,6 +74,8 @@ public class AssignmentService {
 		final var address = addressRepository.findById(request.getAddressId())
 			.filter(entity -> municipalityId.equals(entity.getMunicipalityId()))
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Address %s not found".formatted(sanitize(request.getAddressId()))));
+
+		validateAddressBelongsToRestaurantNumber(restaurantNumber, address);
 
 		final var orgNumber = OrgNumberNormalizer.normalize(request.getOrgNumber());
 		final var licenseHolder = licenseHolderRepository.findByOrgNumber(orgNumber)
@@ -149,6 +152,13 @@ public class AssignmentService {
 				throw Problem.valueOf(BAD_REQUEST, "Restaurant number %s already has an active assignment with ID %s".formatted(
 					sanitize(assignment.getRestaurantNumber().getRestaurantNumber()), sanitize(other.getId())));
 			});
+	}
+
+	private static void validateAddressBelongsToRestaurantNumber(final RestaurantNumberEntity restaurantNumber, final AddressEntity address) {
+		if (!restaurantNumber.getAddress().getId().equals(address.getId())) {
+			throw Problem.valueOf(BAD_REQUEST, "Restaurant number %s belongs to address %s and cannot be assigned at address %s".formatted(
+				sanitize(restaurantNumber.getRestaurantNumber()), sanitize(restaurantNumber.getAddress().getId()), sanitize(address.getId())));
+		}
 	}
 
 	private static void validateValidToNotBeforeValidFrom(final LocalDate validFrom, final LocalDate validTo) {

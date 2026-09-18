@@ -69,13 +69,13 @@ class RestaurantNumberResourceTest {
 
 	@Test
 	void createRestaurantNumber() {
-		when(restaurantNumberService.createRestaurantNumber(MUNICIPALITY_ID)).thenReturn(RESTAURANT_NUMBER);
+		when(restaurantNumberService.createRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID)).thenReturn(RESTAURANT_NUMBER);
 
 		final var restaurantNumberResource = new RestaurantNumberResource(restaurantNumberService, assignmentService);
-		final var response = restaurantNumberResource.createRestaurantNumber(MUNICIPALITY_ID);
+		final var response = restaurantNumberResource.createRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID);
 
 		assertThat(response.getStatusCode()).isEqualTo(CREATED);
 		assertThat(response.getHeaders().getLocation()).hasToString("/2281/restaurant-numbers/" + RESTAURANT_NUMBER);
-		verify(restaurantNumberService).createRestaurantNumber(MUNICIPALITY_ID);
+		verify(restaurantNumberService).createRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID);
 	}
 }

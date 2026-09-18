@@ -1,5 +1,6 @@
 -- Test data for AddressRepositoryTest.
--- Municipality 2281: 15 addresses, 5 of which contain "storgatan" in varying case (case-insensitive search coverage).
+-- Municipality 2281: 16 addresses, 5 of which contain "storgatan" in varying case (case-insensitive search
+-- coverage), and one with a house number letter (address-19, exact lookup coverage).
 -- Municipality 2260: 3 addresses, including one also named "Storgatan 1" (must not leak into 2281 results).
 
 -- INSERT IGNORE: the same testcontainers MariaDB instance is reused across multiple Spring test
@@ -21,6 +22,7 @@ INSERT IGNORE INTO address (id, street_address, postal_code, postal_area, munici
 ('address-13', 'Norra Kajen 1', '852 60', 'Sundsvall', '2281'),
 ('address-14', 'Norra Kajen 5', '852 61', 'Sundsvall', '2281'),
 ('address-15', 'Södra Allén 2', '852 70', 'Sundsvall', '2281'),
+('address-19', 'Kajplats 3B', '851 04', 'Sundsvall', '2281'),
 ('address-16', 'Storgatan 1', '831 30', 'Östersund', '2260'),
 ('address-17', 'Torggatan 4', '831 31', 'Östersund', '2260'),
 ('address-18', 'Kyrkogatan 9', '831 32', 'Östersund', '2260');
@@ -35,12 +37,12 @@ INSERT IGNORE INTO address (id, street_address, postal_code, postal_area, munici
 INSERT IGNORE INTO license_holder (id, org_number, name) VALUES
 ('holder-1', '5566112233', 'Bolag A');
 
-INSERT IGNORE INTO restaurant_number (id, restaurant_number, municipality_id) VALUES
-('rn-1', '2001', '2281'),
-('rn-2', '2002', '2281'),
-('rn-3', '2003', '2281'),
-('rn-4', '2004', '2281'),
-('rn-5', '2005', '2281');
+INSERT IGNORE INTO restaurant_number (id, restaurant_number, municipality_id, address_id) VALUES
+('rn-1', '2001', '2281', 'address-1'),
+('rn-2', '2002', '2281', 'address-1'),
+('rn-3', '2003', '2281', 'address-6'),
+('rn-4', '2004', '2281', 'address-6'),
+('rn-5', '2005', '2281', 'address-1');
 
 INSERT IGNORE INTO restaurant_number_assignment (id, restaurant_number_id, license_holder_id, address_id, holder_name, valid_from, valid_to, status) VALUES
 ('assignment-1', 'rn-1', 'holder-1', 'address-1', 'Bolag A', '2023-01-01', '2023-06-01', 'ACTIVE'),
@@ -55,8 +57,8 @@ INSERT IGNORE INTO restaurant_number_assignment (id, restaurant_number_id, licen
 -- Municipality 2262 is used so that the 2281 data above is left untouched. Sequences 0001 and 0003 are in use,
 -- so the lowest free one is 0002. The two remaining numbers must be ignored by the sequence lookup: one has a
 -- non numeric sequence, the other is longer than the generated format.
-INSERT IGNORE INTO restaurant_number (id, restaurant_number, municipality_id) VALUES
-('rn-seq-1', '22620001', '2262'),
-('rn-seq-2', '22620003', '2262'),
-('rn-seq-3', '2262037x', '2262'),
-('rn-seq-4', '226200011', '2262');
+INSERT IGNORE INTO restaurant_number (id, restaurant_number, municipality_id, address_id) VALUES
+('rn-seq-1', '22620001', '2262', 'address-1'),
+('rn-seq-2', '22620003', '2262', 'address-1'),
+('rn-seq-3', '2262037x', '2262', 'address-1'),
+('rn-seq-4', '226200011', '2262', 'address-1');

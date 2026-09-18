@@ -24,19 +24,13 @@ public interface RestaurantNumberRepository extends JpaRepository<RestaurantNumb
 	List<String> findSequencedRestaurantNumbers(@Param("municipalityId") String municipalityId);
 
 	@Query("""
-		SELECT DISTINCT rn FROM RestaurantNumberEntity rn
+		SELECT rn FROM RestaurantNumberEntity rn
 		WHERE rn.municipalityId = :municipalityId
-		AND EXISTS (
-		    SELECT 1 FROM RestaurantNumberAssignmentEntity latest
-		    WHERE latest.restaurantNumber = rn
-		    AND latest.address.id = :addressId
-		    AND latest.validFrom = (SELECT MAX(a2.validFrom) FROM RestaurantNumberAssignmentEntity a2 WHERE a2.restaurantNumber = rn)
-		)
+		AND rn.address.id = :addressId
 		AND NOT EXISTS (
 		    SELECT 1 FROM RestaurantNumberAssignmentEntity a
 		    WHERE a.restaurantNumber = rn
 		    AND a.status = se.sundsvall.licensedbusiness.integration.db.model.enums.AssignmentStatus.ACTIVE
-		    AND a.validFrom = (SELECT MAX(a2.validFrom) FROM RestaurantNumberAssignmentEntity a2 WHERE a2.restaurantNumber = rn)
 		)
 		""")
 	List<RestaurantNumberEntity> findAvailableByMunicipalityIdAndAddressId(@Param("municipalityId") String municipalityId, @Param("addressId") String addressId);
