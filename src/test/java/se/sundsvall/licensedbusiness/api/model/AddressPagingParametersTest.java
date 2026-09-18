@@ -4,43 +4,54 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Sort;
 
+import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanConstructor;
+import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanEquals;
+import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanHashCode;
+import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanToString;
+import static com.google.code.beanmatchers.BeanMatchers.hasValidGettersAndSetters;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 class AddressPagingParametersTest {
 
+	private static final int PAGE = 2;
+	private static final int LIMIT = 10;
+	private static final List<String> SORT_BY = List.of("streetAddress");
+	private static final Sort.Direction SORT_DIRECTION = Sort.Direction.DESC;
+
 	@Test
-	void equalsAndHashCode() {
-		final var first = new AddressPagingParameters();
-		first.setPage(2);
-		first.setLimit(10);
-		first.setSortBy(List.of("streetAddress"));
-		first.setSortDirection(Sort.Direction.DESC);
-
-		final var second = new AddressPagingParameters();
-		second.setPage(2);
-		second.setLimit(10);
-		second.setSortBy(List.of("streetAddress"));
-		second.setSortDirection(Sort.Direction.DESC);
-
-		final var different = new AddressPagingParameters();
-		different.setPage(3);
-		different.setLimit(10);
-
-		assertThat(first)
-			.isEqualTo(second)
-			.hasSameHashCodeAs(second)
-			.isNotEqualTo(different)
-			.isNotEqualTo(null)
-			.isNotEqualTo("not a paging parameters instance")
-			.isEqualTo(first);
+	void testBean() {
+		assertThat(AddressPagingParameters.class, allOf(
+			hasValidBeanConstructor(),
+			hasValidGettersAndSetters(),
+			hasValidBeanHashCode(),
+			hasValidBeanEquals(),
+			hasValidBeanToString()));
 	}
 
 	@Test
-	void toStringContainsFields() {
+	void setterAndGetterTest() {
 		final var pagingParameters = new AddressPagingParameters();
-		pagingParameters.setPage(1);
-		pagingParameters.setLimit(20);
+		pagingParameters.setPage(PAGE);
+		pagingParameters.setLimit(LIMIT);
+		pagingParameters.setSortBy(SORT_BY);
+		pagingParameters.setSortDirection(SORT_DIRECTION);
 
-		assertThat(pagingParameters.toString()).contains("page=1", "limit=20");
+		assertThat(pagingParameters.getPage()).isEqualTo(PAGE);
+		assertThat(pagingParameters.getLimit()).isEqualTo(LIMIT);
+		assertThat(pagingParameters.getSortBy()).isEqualTo(SORT_BY);
+		assertThat(pagingParameters.getSortDirection()).isEqualTo(SORT_DIRECTION);
+		assertThat(pagingParameters).hasNoNullFieldsOrProperties();
+	}
+
+	@Test
+	void constructorTest() {
+		final var pagingParameters = new AddressPagingParameters();
+
+		assertThat(pagingParameters).hasAllNullFieldsOrPropertiesExcept("page", "limit", "sortDirection");
+		assertThat(pagingParameters.getPage()).isEqualTo(1);
+		assertThat(pagingParameters.getLimit()).isEqualTo(100);
+		assertThat(pagingParameters.getSortDirection()).isEqualTo(Sort.DEFAULT_DIRECTION);
 	}
 }

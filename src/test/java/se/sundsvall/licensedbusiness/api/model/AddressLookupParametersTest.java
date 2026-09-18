@@ -2,57 +2,43 @@ package se.sundsvall.licensedbusiness.api.model;
 
 import org.junit.jupiter.api.Test;
 
+import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanConstructor;
+import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanEquals;
+import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanHashCode;
+import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanToString;
+import static com.google.code.beanmatchers.BeanMatchers.hasValidGettersAndSetters;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 class AddressLookupParametersTest {
 
-	@Test
-	void gettersAndSetters() {
-		final var lookupParameters = new AddressLookupParameters();
-		lookupParameters.setStreetAddress("Storgatan 1");
-		lookupParameters.setPostalCode("852 30");
+	private static final String STREET_ADDRESS = "Storgatan 1";
+	private static final String POSTAL_CODE = "852 30";
 
-		assertThat(lookupParameters.getStreetAddress()).isEqualTo("Storgatan 1");
-		assertThat(lookupParameters.getPostalCode()).isEqualTo("852 30");
+	@Test
+	void testBean() {
+		assertThat(AddressLookupParameters.class, allOf(
+			hasValidBeanConstructor(),
+			hasValidGettersAndSetters(),
+			hasValidBeanHashCode(),
+			hasValidBeanEquals(),
+			hasValidBeanToString()));
 	}
 
 	@Test
-	void noDirtOnCreatedBean() {
+	void setterAndGetterTest() {
 		final var lookupParameters = new AddressLookupParameters();
+		lookupParameters.setStreetAddress(STREET_ADDRESS);
+		lookupParameters.setPostalCode(POSTAL_CODE);
 
-		assertThat(lookupParameters.getStreetAddress()).isNull();
-		assertThat(lookupParameters.getPostalCode()).isNull();
+		assertThat(lookupParameters.getStreetAddress()).isEqualTo(STREET_ADDRESS);
+		assertThat(lookupParameters.getPostalCode()).isEqualTo(POSTAL_CODE);
+		assertThat(lookupParameters).hasNoNullFieldsOrProperties();
 	}
 
 	@Test
-	void equalsAndHashCode() {
-		final var first = new AddressLookupParameters();
-		first.setStreetAddress("Storgatan 1");
-		first.setPostalCode("852 30");
-
-		final var second = new AddressLookupParameters();
-		second.setStreetAddress("Storgatan 1");
-		second.setPostalCode("852 30");
-
-		final var differentPostalCode = new AddressLookupParameters();
-		differentPostalCode.setStreetAddress("Storgatan 1");
-		differentPostalCode.setPostalCode("852 31");
-
-		assertThat(first)
-			.isEqualTo(second)
-			.hasSameHashCodeAs(second)
-			.isNotEqualTo(differentPostalCode)
-			.isNotEqualTo(null)
-			.isNotEqualTo("not a lookup parameters instance")
-			.isEqualTo(first);
-	}
-
-	@Test
-	void toStringContainsFields() {
-		final var lookupParameters = new AddressLookupParameters();
-		lookupParameters.setStreetAddress("Storgatan 1");
-		lookupParameters.setPostalCode("852 30");
-
-		assertThat(lookupParameters.toString()).contains("streetAddress='Storgatan 1'", "postalCode='852 30'");
+	void constructorTest() {
+		assertThat(new AddressLookupParameters()).hasAllNullFieldsOrProperties();
 	}
 }
