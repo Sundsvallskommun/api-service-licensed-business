@@ -123,7 +123,6 @@ class AssignmentIT extends AbstractAppTest {
 			.sendRequestAndVerifyResponse();
 	}
 
-	// The restaurant number belongs to the premises, so it cannot be assigned at another address.
 	@Test
 	void test09_createAssignmentAtAnAddressTheNumberDoesNotBelongTo() {
 		setupCall()

@@ -42,8 +42,6 @@ public class RestaurantNumberEntity {
 	@Column(name = "municipality_id", nullable = false, length = 6)
 	private String municipalityId;
 
-	// The restaurant number belongs to the premises, not to the business, so it stays on the address when
-	// one holder is replaced by the next. The address on an assignment is where that assignment ran.
 	@ManyToOne(optional = false, fetch = FetchType.LAZY)
 	@JoinColumn(name = "address_id", nullable = false, foreignKey = @ForeignKey(name = "FK_RESTAURANT_NUMBER_ADDRESS"))
 	private AddressEntity address;

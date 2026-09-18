@@ -251,8 +251,6 @@ public class RestaurantNumberAssignmentEntity {
 		return this;
 	}
 
-	// restaurantNumber, licenseHolder and address are intentionally excluded from equals/hashCode/toString to avoid
-	// touching lazy proxies.
 	@Override
 	public boolean equals(Object o) {
 		if (o == null || getClass() != o.getClass())

@@ -165,9 +165,7 @@ public class ImportService {
 	}
 
 	// The register holds numbers that appear at more than one address. The number belongs to one address, so
-	// the most recent assignment decides which, and the case is reported back to the caller. Every row is
-	// weighed in, including one that matches the address already held, so that a later but older row cannot
-	// take the number over.
+	// the most recent assignment decides which, and the case is reported back to the caller.
 	private static void resolveAddress(final RestaurantNumberEntity restaurantNumber, final AddressEntity address, final LocalDate validFrom,
 		final Set<String> conflictingRestaurantNumbers, final Map<String, LocalDate> addressValidFromPerNumber) {
 		if (!restaurantNumber.getAddress().getId().equals(address.getId())) {

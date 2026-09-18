@@ -93,8 +93,6 @@ public class RestaurantNumberService {
 			.collect(toSet());
 	}
 
-	// A restaurant number belongs to the premises, so it becomes available again at the same address as
-	// soon as the holder before leaves, and the next business there takes it over.
 	public List<RestaurantNumber> getAvailableRestaurantNumbers(final String municipalityId, final String addressId) {
 		if (!addressRepository.existsByIdAndMunicipalityId(addressId, municipalityId)) {
 			throw Problem.valueOf(NOT_FOUND, "Address %s not found".formatted(sanitize(addressId)));

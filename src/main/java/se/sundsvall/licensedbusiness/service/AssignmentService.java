@@ -154,8 +154,6 @@ public class AssignmentService {
 			});
 	}
 
-	// The restaurant number belongs to the premises and does not follow a business to a new address. A new
-	// business in the same premises takes over the number that is already there.
 	private static void validateAddressBelongsToRestaurantNumber(final RestaurantNumberEntity restaurantNumber, final AddressEntity address) {
 		if (!restaurantNumber.getAddress().getId().equals(address.getId())) {
 			throw Problem.valueOf(BAD_REQUEST, "Restaurant number %s belongs to address %s and cannot be assigned at address %s".formatted(
