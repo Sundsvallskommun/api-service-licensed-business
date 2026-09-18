@@ -2,6 +2,7 @@ package se.sundsvall.licensedbusiness.service;
 
 public final class AddressNormalizer {
 
+	// (?U) makes \s match all unicode whitespace, including U+00A0 which String.trim() and plain \s do not.
 	private static final String WHITESPACE = "(?U)\\s+";
 	private static final String HOUSE_NUMBER_LETTER = "(?U)(\\d)\\s+(\\p{L})$";
 

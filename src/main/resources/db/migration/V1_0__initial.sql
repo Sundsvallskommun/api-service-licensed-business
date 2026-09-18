@@ -1,8 +1,8 @@
 CREATE TABLE address
 (
     id              VARCHAR(36)  NOT NULL,
-    street_address  VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-    postal_code     VARCHAR(10)  CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+    street_address  VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_swedish_ci NOT NULL,
+    postal_code     VARCHAR(10)  CHARACTER SET utf8mb4 COLLATE utf8mb4_swedish_ci NOT NULL,
     postal_area     VARCHAR(100) NULL,
     municipality_id VARCHAR(6)   NOT NULL,
     created         datetime     NULL,
