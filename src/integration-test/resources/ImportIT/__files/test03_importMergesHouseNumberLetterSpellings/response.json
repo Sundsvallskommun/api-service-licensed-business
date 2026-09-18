@@ -5,5 +5,5 @@
 	"restaurantNumbersCreated": 1,
 	"assignmentsCreated": 2,
 	"errors": [],
-	"conflictingAddresses": []
+	"conflictingRestaurantNumbers": []
 }

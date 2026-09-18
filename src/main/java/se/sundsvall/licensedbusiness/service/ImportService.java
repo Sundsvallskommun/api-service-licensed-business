@@ -64,8 +64,8 @@ public class ImportService {
 		var restaurantNumbersCreated = 0;
 		var assignmentsCreated = 0;
 		final List<String> errors = new ArrayList<>();
-		final Set<String> conflictingAddresses = new TreeSet<>();
-		final Map<String, LocalDate> addressPerNumber = new HashMap<>();
+		final Set<String> conflictingRestaurantNumbers = new TreeSet<>();
+		final Map<String, LocalDate> addressValidFromPerNumber = new HashMap<>();
 
 		final var format = CSVFormat.Builder.create(CSVFormat.DEFAULT)
 			.setHeader()
@@ -84,7 +84,7 @@ public class ImportService {
 				for (final var csvRecord : parser) {
 					rowsProcessed++;
 					try {
-						final var created = importRow(municipalityId, csvRecord, conflictingAddresses, addressPerNumber);
+						final var created = importRow(municipalityId, csvRecord, conflictingRestaurantNumbers, addressValidFromPerNumber);
 						addressesCreated += created.addresses();
 						licenseHoldersCreated += created.licenseHolders();
 						restaurantNumbersCreated += created.restaurantNumbers();
@@ -102,10 +102,10 @@ public class ImportService {
 			throw Problem.valueOf(BAD_REQUEST, "Import failed, no data was saved: %s".formatted(String.join("; ", errors)));
 		}
 
-		return new ImportResult(rowsProcessed, addressesCreated, licenseHoldersCreated, restaurantNumbersCreated, assignmentsCreated, errors, List.copyOf(conflictingAddresses));
+		return new ImportResult(rowsProcessed, addressesCreated, licenseHoldersCreated, restaurantNumbersCreated, assignmentsCreated, errors, List.copyOf(conflictingRestaurantNumbers));
 	}
 
-	private CreatedCounts importRow(final String municipalityId, final CSVRecord csvRecord, final Set<String> conflictingAddresses, final Map<String, LocalDate> addressPerNumber) {
+	private CreatedCounts importRow(final String municipalityId, final CSVRecord csvRecord, final Set<String> conflictingRestaurantNumbers, final Map<String, LocalDate> addressValidFromPerNumber) {
 		final var streetAddress = normalizeStreetAddress(csvRecord.get("street_address"));
 		final var postalCode = normalizePostalCode(csvRecord.get("postal_code"));
 		final var postalArea = csvRecord.get("postal_area").trim();
@@ -146,9 +146,9 @@ public class ImportService {
 				.withMunicipalityId(municipalityId)
 				.withAddress(address));
 			restaurantNumbersCreated = 1;
-			addressPerNumber.put(restaurantNumber, validFrom);
+			addressValidFromPerNumber.put(restaurantNumber, validFrom);
 		} else {
-			resolveAddressConflict(restaurantNumberEntity, address, validFrom, conflictingAddresses, addressPerNumber);
+			resolveAddress(restaurantNumberEntity, address, validFrom, conflictingRestaurantNumbers, addressValidFromPerNumber);
 		}
 
 		restaurantNumberAssignmentRepository.save(RestaurantNumberAssignmentEntity.create()
@@ -165,17 +165,18 @@ public class ImportService {
 	}
 
 	// The register holds numbers that appear at more than one address. The number belongs to one address, so
-	// the most recent assignment decides which, and the case is reported back to the caller.
-	private static void resolveAddressConflict(final RestaurantNumberEntity restaurantNumber, final AddressEntity address, final LocalDate validFrom,
-		final Set<String> conflictingAddresses, final Map<String, LocalDate> addressPerNumber) {
-		if (restaurantNumber.getAddress().getId().equals(address.getId())) {
-			return;
+	// the most recent assignment decides which, and the case is reported back to the caller. Every row is
+	// weighed in, including one that matches the address already held, so that a later but older row cannot
+	// take the number over.
+	private static void resolveAddress(final RestaurantNumberEntity restaurantNumber, final AddressEntity address, final LocalDate validFrom,
+		final Set<String> conflictingRestaurantNumbers, final Map<String, LocalDate> addressValidFromPerNumber) {
+		if (!restaurantNumber.getAddress().getId().equals(address.getId())) {
+			conflictingRestaurantNumbers.add(restaurantNumber.getRestaurantNumber());
 		}
 
-		conflictingAddresses.add(restaurantNumber.getRestaurantNumber());
-		if (validFrom.isAfter(addressPerNumber.getOrDefault(restaurantNumber.getRestaurantNumber(), LocalDate.MIN))) {
+		if (validFrom.isAfter(addressValidFromPerNumber.getOrDefault(restaurantNumber.getRestaurantNumber(), LocalDate.MIN))) {
 			restaurantNumber.setAddress(address);
-			addressPerNumber.put(restaurantNumber.getRestaurantNumber(), validFrom);
+			addressValidFromPerNumber.put(restaurantNumber.getRestaurantNumber(), validFrom);
 		}
 	}
 

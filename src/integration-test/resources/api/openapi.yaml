@@ -820,7 +820,7 @@ components:
           type: array
           items:
             type: string
-        conflictingAddresses:
+        conflictingRestaurantNumbers:
           type: array
           items:
             type: string
