@@ -46,7 +46,7 @@ public class RestaurantNumberEntity {
 	@JoinColumn(name = "address_id", nullable = false, foreignKey = @ForeignKey(name = "FK_RESTAURANT_NUMBER_ADDRESS"))
 	private AddressEntity address;
 
-	@Column(name = "reported", nullable = false)
+	@Column(name = "reported", nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
 	private Boolean reported;
 
 	@Column(name = "created", columnDefinition = "DATETIME")
