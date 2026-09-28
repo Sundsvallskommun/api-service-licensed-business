@@ -33,6 +33,7 @@ import se.sundsvall.licensedbusiness.service.RestaurantNumberService;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpHeaders.LOCATION;
 import static org.springframework.http.MediaType.ALL_VALUE;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON_VALUE;
 import static org.springframework.web.util.UriComponentsBuilder.fromPath;
 
@@ -79,7 +80,7 @@ class AddressResource {
 		description = "Each restaurant number carries its status, ACTIVE when it has an active assignment and otherwise AVAILABLE, and the premises name and period of the assignment "
 			+ "running today. An ACTIVE number without one shows its next active assignment, and an AVAILABLE number shows its previous one.",
 		responses = {
-			@ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = AddressRestaurantNumber.class)))),
+			@ApiResponse(responseCode = "200", description = "OK", content = @Content(mediaType = APPLICATION_JSON_VALUE, array = @ArraySchema(schema = @Schema(implementation = AddressRestaurantNumber.class)))),
 			@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))
 		})
 	@GetMapping("/{addressId}/restaurant-numbers")
