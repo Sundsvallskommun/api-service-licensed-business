@@ -1183,6 +1183,12 @@ components:
           description: Municipality ID
           examples:
           - "2281"
+        reported:
+          type: boolean
+          description: Whether the restaurant number has been reported to the Public
+            Health Agency of Sweden
+          examples:
+          - false
         status:
           type: string
           description: "ACTIVE when the restaurant number has an active assignment,\

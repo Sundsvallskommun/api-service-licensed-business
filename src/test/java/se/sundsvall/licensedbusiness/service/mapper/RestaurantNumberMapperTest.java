@@ -44,6 +44,7 @@ class RestaurantNumberMapperTest {
 			.withId("number-1")
 			.withRestaurantNumber("22810001")
 			.withMunicipalityId("2281")
+			.withReported(true)
 			.withCreated(created);
 		final var latestAssignment = RestaurantNumberAssignmentEntity.create()
 			.withPremisesName("Harrys Pub")
@@ -55,6 +56,7 @@ class RestaurantNumberMapperTest {
 		assertThat(result.getId()).isEqualTo("number-1");
 		assertThat(result.getNumber()).isEqualTo("22810001");
 		assertThat(result.getMunicipalityId()).isEqualTo("2281");
+		assertThat(result.getReported()).isTrue();
 		assertThat(result.getStatus()).isEqualTo("ACTIVE");
 		assertThat(result.getPremisesName()).isEqualTo("Harrys Pub");
 		assertThat(result.getValidFrom()).isEqualTo(LocalDate.of(2026, 1, 1));

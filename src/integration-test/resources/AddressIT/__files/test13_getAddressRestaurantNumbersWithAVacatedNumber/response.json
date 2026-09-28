@@ -3,6 +3,7 @@
 		"id": "it-number-3",
 		"number": "22810004",
 		"municipalityId": "2281",
+		"reported": true,
 		"status": "AVAILABLE",
 		"premisesName": "Testbaren",
 		"validFrom": "2019-01-01",

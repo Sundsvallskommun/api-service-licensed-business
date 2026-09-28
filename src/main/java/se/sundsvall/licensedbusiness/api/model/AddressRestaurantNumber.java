@@ -18,6 +18,9 @@ public class AddressRestaurantNumber {
 	@Schema(description = "Municipality ID", examples = "2281")
 	private String municipalityId;
 
+	@Schema(description = "Whether the restaurant number has been reported to the Public Health Agency of Sweden", examples = "false")
+	private Boolean reported;
+
 	@Schema(description = "ACTIVE when the restaurant number has an active assignment, otherwise AVAILABLE", allowableValues = {
 		"ACTIVE", "AVAILABLE"
 	}, examples = "ACTIVE")
@@ -75,6 +78,19 @@ public class AddressRestaurantNumber {
 
 	public AddressRestaurantNumber withMunicipalityId(String municipalityId) {
 		this.municipalityId = municipalityId;
+		return this;
+	}
+
+	public Boolean getReported() {
+		return reported;
+	}
+
+	public void setReported(Boolean reported) {
+		this.reported = reported;
+	}
+
+	public AddressRestaurantNumber withReported(Boolean reported) {
+		this.reported = reported;
 		return this;
 	}
 
@@ -148,13 +164,13 @@ public class AddressRestaurantNumber {
 		if (o == null || getClass() != o.getClass())
 			return false;
 		AddressRestaurantNumber that = (AddressRestaurantNumber) o;
-		return Objects.equals(id, that.id) && Objects.equals(number, that.number) && Objects.equals(municipalityId, that.municipalityId) && Objects.equals(status, that.status)
+		return Objects.equals(id, that.id) && Objects.equals(number, that.number) && Objects.equals(municipalityId, that.municipalityId) && Objects.equals(reported, that.reported) && Objects.equals(status, that.status)
 			&& Objects.equals(premisesName, that.premisesName) && Objects.equals(validFrom, that.validFrom) && Objects.equals(validTo, that.validTo) && Objects.equals(created, that.created);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(id, number, municipalityId, status, premisesName, validFrom, validTo, created);
+		return Objects.hash(id, number, municipalityId, reported, status, premisesName, validFrom, validTo, created);
 	}
 
 	@Override
@@ -163,6 +179,7 @@ public class AddressRestaurantNumber {
 			"id='" + id + '\'' +
 			", number='" + number + '\'' +
 			", municipalityId='" + municipalityId + '\'' +
+			", reported=" + reported +
 			", status='" + status + '\'' +
 			", premisesName='" + premisesName + '\'' +
 			", validFrom=" + validFrom +

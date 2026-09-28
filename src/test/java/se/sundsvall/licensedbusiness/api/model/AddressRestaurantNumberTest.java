@@ -22,6 +22,7 @@ class AddressRestaurantNumberTest {
 	private static final String ID = "123e4567-e89b-12d3-a456-426614174000";
 	private static final String NUMBER = "22810001";
 	private static final String MUNICIPALITY_ID = "2281";
+	private static final Boolean REPORTED = true;
 	private static final String STATUS = "ACTIVE";
 	private static final String PREMISES_NAME = "Harrys Pub";
 	private static final LocalDate VALID_FROM = LocalDate.of(2026, 1, 1);
@@ -51,6 +52,7 @@ class AddressRestaurantNumberTest {
 			.withId(ID)
 			.withNumber(NUMBER)
 			.withMunicipalityId(MUNICIPALITY_ID)
+			.withReported(REPORTED)
 			.withStatus(STATUS)
 			.withPremisesName(PREMISES_NAME)
 			.withValidFrom(VALID_FROM)
@@ -60,6 +62,7 @@ class AddressRestaurantNumberTest {
 		assertThat(addressRestaurantNumber.getId()).isEqualTo(ID);
 		assertThat(addressRestaurantNumber.getNumber()).isEqualTo(NUMBER);
 		assertThat(addressRestaurantNumber.getMunicipalityId()).isEqualTo(MUNICIPALITY_ID);
+		assertThat(addressRestaurantNumber.getReported()).isEqualTo(REPORTED);
 		assertThat(addressRestaurantNumber.getStatus()).isEqualTo(STATUS);
 		assertThat(addressRestaurantNumber.getPremisesName()).isEqualTo(PREMISES_NAME);
 		assertThat(addressRestaurantNumber.getValidFrom()).isEqualTo(VALID_FROM);
@@ -74,6 +77,7 @@ class AddressRestaurantNumberTest {
 		addressRestaurantNumber.setId(ID);
 		addressRestaurantNumber.setNumber(NUMBER);
 		addressRestaurantNumber.setMunicipalityId(MUNICIPALITY_ID);
+		addressRestaurantNumber.setReported(REPORTED);
 		addressRestaurantNumber.setStatus(STATUS);
 		addressRestaurantNumber.setPremisesName(PREMISES_NAME);
 		addressRestaurantNumber.setValidFrom(VALID_FROM);
@@ -83,6 +87,7 @@ class AddressRestaurantNumberTest {
 		assertThat(addressRestaurantNumber.getId()).isEqualTo(ID);
 		assertThat(addressRestaurantNumber.getNumber()).isEqualTo(NUMBER);
 		assertThat(addressRestaurantNumber.getMunicipalityId()).isEqualTo(MUNICIPALITY_ID);
+		assertThat(addressRestaurantNumber.getReported()).isEqualTo(REPORTED);
 		assertThat(addressRestaurantNumber.getStatus()).isEqualTo(STATUS);
 		assertThat(addressRestaurantNumber.getPremisesName()).isEqualTo(PREMISES_NAME);
 		assertThat(addressRestaurantNumber.getValidFrom()).isEqualTo(VALID_FROM);

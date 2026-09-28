@@ -31,6 +31,7 @@ public class RestaurantNumberMapper {
 			.withId(entity.getId())
 			.withNumber(entity.getRestaurantNumber())
 			.withMunicipalityId(entity.getMunicipalityId())
+			.withReported(entity.getReported())
 			.withStatus(status)
 			.withPremisesName(latest.map(RestaurantNumberAssignmentEntity::getPremisesName).orElse(null))
 			.withValidFrom(latest.map(RestaurantNumberAssignmentEntity::getValidFrom).orElse(null))
