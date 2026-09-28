@@ -6,7 +6,7 @@ import java.time.OffsetDateTime;
 import java.util.Objects;
 
 @Schema(description = "Restaurant number at an address, with its status and the premises name and period of its current assignment. "
-	+ "A number without a current assignment shows its previous one, and a number whose only assignments start later shows the next one.")
+	+ "An ACTIVE number without a current assignment shows its next active one, and an AVAILABLE number shows its previous one.")
 public class AddressRestaurantNumber {
 
 	@Schema(description = "Restaurant number ID", examples = "9ce333ec-a473-438b-8406-a71e957dc107")

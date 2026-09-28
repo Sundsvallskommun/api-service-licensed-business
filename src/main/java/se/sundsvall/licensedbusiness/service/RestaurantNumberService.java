@@ -133,23 +133,24 @@ public class RestaurantNumberService {
 
 		final var assignmentsPerNumber = restaurantNumberAssignmentRepository.findAllByRestaurantNumber_Address_Id(addressId).stream()
 			.collect(groupingBy(assignment -> assignment.getRestaurantNumber().getId()));
-		final var startedFirst = startedFirst(LocalDate.now(ZoneId.systemDefault()));
+		final var shownFirst = shownFirst(LocalDate.now(ZoneId.systemDefault()));
 
 		return restaurantNumberRepository.findAllByMunicipalityIdAndAddress_IdOrderByRestaurantNumber(municipalityId, addressId).stream()
-			.map(restaurantNumber -> toAddressRestaurantNumber(restaurantNumber, assignmentsPerNumber.getOrDefault(restaurantNumber.getId(), emptyList()), startedFirst))
+			.map(restaurantNumber -> toAddressRestaurantNumber(restaurantNumber, assignmentsPerNumber.getOrDefault(restaurantNumber.getId(), emptyList()), shownFirst))
 			.toList();
 	}
 
 	private AddressRestaurantNumber toAddressRestaurantNumber(final RestaurantNumberEntity restaurantNumber, final List<RestaurantNumberAssignmentEntity> assignments,
-		final Comparator<RestaurantNumberAssignmentEntity> startedFirst) {
-		final var shownAssignment = assignments.stream().max(startedFirst).orElse(null);
+		final Comparator<RestaurantNumberAssignmentEntity> shownFirst) {
+		final var shownAssignment = assignments.stream().max(shownFirst).orElse(null);
 		final var status = assignments.stream().anyMatch(assignment -> assignment.getStatus() == ACTIVE) ? STATUS_ACTIVE : STATUS_AVAILABLE;
 
 		return restaurantNumberMapper.toAddressRestaurantNumber(restaurantNumber, shownAssignment, status);
 	}
 
-	private static Comparator<RestaurantNumberAssignmentEntity> startedFirst(final LocalDate today) {
-		return Comparator.comparing((final RestaurantNumberAssignmentEntity assignment) -> !assignment.getValidFrom().isAfter(today))
+	private static Comparator<RestaurantNumberAssignmentEntity> shownFirst(final LocalDate today) {
+		return Comparator.comparing((final RestaurantNumberAssignmentEntity assignment) -> assignment.getStatus() == ACTIVE)
+			.thenComparing(assignment -> !assignment.getValidFrom().isAfter(today))
 			.thenComparing(BY_VALID_FROM_THEN_CREATED);
 	}
 }

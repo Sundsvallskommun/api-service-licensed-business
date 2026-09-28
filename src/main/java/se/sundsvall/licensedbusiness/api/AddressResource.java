@@ -77,7 +77,7 @@ class AddressResource {
 
 	@Operation(summary = "Get every restaurant number at an address",
 		description = "Each restaurant number carries its status, ACTIVE when it has an active assignment and otherwise AVAILABLE, and the premises name and period of the assignment "
-			+ "running today. A number without one shows its previous assignment, and a number whose only assignments start later shows the next one.",
+			+ "running today. An ACTIVE number without one shows its next active assignment, and an AVAILABLE number shows its previous one.",
 		responses = {
 			@ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = AddressRestaurantNumber.class)))),
 			@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))

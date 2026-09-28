@@ -227,6 +227,25 @@ class RestaurantNumberServiceTest {
 	}
 
 	@Test
+	void getAddressRestaurantNumbersShowsTheActiveAssignmentOverAnEndedOneThatHasStarted() {
+		final var today = LocalDate.now();
+		final var reopening = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("22810001").withMunicipalityId(MUNICIPALITY_ID);
+
+		when(addressRepository.existsByIdAndMunicipalityId(ADDRESS_ID, MUNICIPALITY_ID)).thenReturn(true);
+		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber_Address_Id(ADDRESS_ID)).thenReturn(List.of(
+			assignment(reopening, "Gamla Baren", LocalDate.of(2020, 1, 1), LocalDate.of(2024, 12, 31), ENDED, null),
+			assignment(reopening, "Nya Baren", today.plusMonths(1), null, ACTIVE, null)));
+		when(restaurantNumberRepository.findAllByMunicipalityIdAndAddress_IdOrderByRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID)).thenReturn(List.of(reopening));
+
+		final var restaurantNumberService = new RestaurantNumberService(restaurantNumberRepository, restaurantNumberAssignmentRepository, addressRepository, restaurantNumberMapper);
+		final var result = restaurantNumberService.getAddressRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID);
+
+		assertThat(result)
+			.extracting(AddressRestaurantNumber::getNumber, AddressRestaurantNumber::getStatus, AddressRestaurantNumber::getPremisesName, AddressRestaurantNumber::getValidFrom, AddressRestaurantNumber::getValidTo)
+			.containsExactly(tuple("22810001", "ACTIVE", "Nya Baren", today.plusMonths(1), null));
+	}
+
+	@Test
 	void getAddressRestaurantNumbersWithUnknownAddress() {
 		when(addressRepository.existsByIdAndMunicipalityId(ADDRESS_ID, MUNICIPALITY_ID)).thenReturn(false);
 
