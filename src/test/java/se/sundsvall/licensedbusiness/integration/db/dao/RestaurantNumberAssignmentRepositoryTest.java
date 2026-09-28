@@ -127,6 +127,13 @@ class RestaurantNumberAssignmentRepositoryTest {
 	}
 
 	@Test
+	void findAllByRestaurantNumberAddressIdFollowsTheNumberNotTheAssignmentAddress() {
+		final var assignments = restaurantNumberAssignmentRepository.findAllByRestaurantNumber_Address_Id("address-6");
+
+		assertThat(assignments).extracting("id").containsExactlyInAnyOrder("assignment-5", "assignment-6", "assignment-7");
+	}
+
+	@Test
 	void updateBumpsVersionAndSetsModified() {
 		final var assignment = restaurantNumberAssignmentRepository.findById("assignment-1").orElseThrow();
 		final var versionBeforeUpdate = assignment.getVersion();

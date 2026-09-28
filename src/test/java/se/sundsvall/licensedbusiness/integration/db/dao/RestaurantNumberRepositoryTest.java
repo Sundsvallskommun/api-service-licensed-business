@@ -96,4 +96,16 @@ class RestaurantNumberRepositoryTest {
 
 		assertThat(numbers).isEmpty();
 	}
+
+	@Test
+	void findAllByMunicipalityIdAndAddressIdReturnsEveryNumberAtTheAddressInOrder() {
+		final var numbers = restaurantNumberRepository.findAllByMunicipalityIdAndAddress_IdOrderByRestaurantNumber(MUNICIPALITY_ID, "address-1");
+
+		assertThat(numbers).extracting("id").containsExactly("rn-1", "rn-2", "rn-5");
+	}
+
+	@Test
+	void findAllByMunicipalityIdAndAddressIdIsScopedToMunicipality() {
+		assertThat(restaurantNumberRepository.findAllByMunicipalityIdAndAddress_IdOrderByRestaurantNumber("2260", "address-1")).isEmpty();
+	}
 }

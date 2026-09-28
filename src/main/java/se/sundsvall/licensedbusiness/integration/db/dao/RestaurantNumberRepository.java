@@ -16,6 +16,8 @@ public interface RestaurantNumberRepository extends JpaRepository<RestaurantNumb
 
 	Optional<RestaurantNumberEntity> findByIdAndMunicipalityId(String id, String municipalityId);
 
+	List<RestaurantNumberEntity> findAllByMunicipalityIdAndAddress_IdOrderByRestaurantNumber(String municipalityId, String addressId);
+
 	@Query("""
 		SELECT rn.restaurantNumber FROM RestaurantNumberEntity rn
 		WHERE rn.municipalityId = :municipalityId

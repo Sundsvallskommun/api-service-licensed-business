@@ -16,6 +16,7 @@ import se.sundsvall.dept44.problem.violations.Violation;
 import se.sundsvall.licensedbusiness.Application;
 import se.sundsvall.licensedbusiness.api.model.Address;
 import se.sundsvall.licensedbusiness.service.AddressService;
+import se.sundsvall.licensedbusiness.service.RestaurantNumberService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
@@ -40,6 +41,7 @@ class AddressResourceFailureTest {
 	private static final String PATH = "/{municipalityId}/addresses";
 	private static final String SEARCH_PATH = "/{municipalityId}/addresses/search";
 	private static final String LOOKUP_PATH = "/{municipalityId}/addresses/lookup";
+	private static final String RESTAURANT_NUMBERS_PATH = "/{municipalityId}/addresses/{addressId}/restaurant-numbers";
 	private static final String ADDRESS_ID = "9ce333ec-a473-438b-8406-a71e957dc107";
 
 	@Autowired
@@ -47,6 +49,9 @@ class AddressResourceFailureTest {
 
 	@MockitoBean
 	private AddressService addressServiceMock;
+
+	@MockitoBean
+	private RestaurantNumberService restaurantNumberServiceMock;
 
 	@Test
 	void getAddressesWithInvalidMunicipalityId() {
@@ -355,5 +360,44 @@ class AddressResourceFailureTest {
 		assertThat(response).isNotNull();
 		assertThat(response.getDetail()).contains(ADDRESS_ID);
 		assertThat(response.getInstance()).isEqualTo(URI.create("/2281/addresses/" + ADDRESS_ID));
+	}
+
+	@Test
+	void getAddressRestaurantNumbersWithInvalidMunicipalityId() {
+		final var response = webTestClient.get()
+			.uri(builder -> builder.path(RESTAURANT_NUMBERS_PATH).build(Map.of("municipalityId", INVALID_MUNICIPALITY_ID, "addressId", ADDRESS_ID)))
+			.exchange()
+			.expectStatus().isBadRequest()
+			.expectBody(ConstraintViolationProblem.class)
+			.returnResult()
+			.getResponseBody();
+
+		assertThat(response).isNotNull();
+		assertThat(response.getTitle()).isEqualTo("Constraint Violation");
+		assertThat(response.getStatus()).isEqualTo(BAD_REQUEST);
+		assertThat(response.getViolations())
+			.extracting(Violation::field, Violation::message)
+			.containsExactly(tuple("getAddressRestaurantNumbers.municipalityId", "not a valid municipality ID"));
+
+		verifyNoInteractions(restaurantNumberServiceMock);
+	}
+
+	@Test
+	void getAddressRestaurantNumbersForUnknownAddressIsAProblemResponse() {
+		when(restaurantNumberServiceMock.getAddressRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID))
+			.thenThrow(Problem.valueOf(NOT_FOUND, "Address " + ADDRESS_ID + " not found"));
+
+		final var response = webTestClient.get()
+			.uri(builder -> builder.path(RESTAURANT_NUMBERS_PATH).build(Map.of("municipalityId", MUNICIPALITY_ID, "addressId", ADDRESS_ID)))
+			.exchange()
+			.expectStatus().isNotFound()
+			.expectHeader().contentType(APPLICATION_PROBLEM_JSON)
+			.expectBody(ProblemResponse.class)
+			.returnResult()
+			.getResponseBody();
+
+		assertThat(response).isNotNull();
+		assertThat(response.getStatus()).isEqualTo(NOT_FOUND);
+		assertThat(response.getDetail()).isEqualTo("Address " + ADDRESS_ID + " not found");
 	}
 }

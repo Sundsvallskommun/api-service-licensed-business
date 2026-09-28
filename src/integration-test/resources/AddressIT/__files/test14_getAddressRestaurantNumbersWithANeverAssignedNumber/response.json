@@ -1,9 +1,9 @@
 [
 	{
-		"id": "it-number-3",
-		"number": "22810004",
+		"id": "it-number-2",
+		"number": "22810003",
 		"municipalityId": "2281",
-		"reported": true,
+		"status": "AVAILABLE",
 		"created": "${json-unit.any-string}"
 	}
 ]

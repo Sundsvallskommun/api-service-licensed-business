@@ -18,6 +18,7 @@
     ) engine=InnoDB;
 
     create table restaurant_number (
+        reported bit not null,
         municipality_id varchar(6) not null,
         created DATETIME,
         restaurant_number varchar(20) not null,

@@ -16,6 +16,9 @@ public class RestaurantNumber {
 	@Schema(description = "Municipality ID", examples = "2281")
 	private String municipalityId;
 
+	@Schema(description = "Whether the restaurant number has been reported to the Public Health Agency of Sweden", examples = "false")
+	private Boolean reported;
+
 	@Schema(description = "Timestamp when the restaurant number was created")
 	private OffsetDateTime created;
 
@@ -62,6 +65,19 @@ public class RestaurantNumber {
 		return this;
 	}
 
+	public Boolean getReported() {
+		return reported;
+	}
+
+	public void setReported(Boolean reported) {
+		this.reported = reported;
+	}
+
+	public RestaurantNumber withReported(Boolean reported) {
+		this.reported = reported;
+		return this;
+	}
+
 	public OffsetDateTime getCreated() {
 		return created;
 	}
@@ -80,12 +96,13 @@ public class RestaurantNumber {
 		if (o == null || getClass() != o.getClass())
 			return false;
 		RestaurantNumber that = (RestaurantNumber) o;
-		return Objects.equals(id, that.id) && Objects.equals(number, that.number) && Objects.equals(municipalityId, that.municipalityId) && Objects.equals(created, that.created);
+		return Objects.equals(id, that.id) && Objects.equals(number, that.number) && Objects.equals(municipalityId, that.municipalityId) && Objects.equals(reported, that.reported)
+			&& Objects.equals(created, that.created);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(id, number, municipalityId, created);
+		return Objects.hash(id, number, municipalityId, reported, created);
 	}
 
 	@Override
@@ -94,6 +111,7 @@ public class RestaurantNumber {
 			"id='" + id + '\'' +
 			", number='" + number + '\'' +
 			", municipalityId='" + municipalityId + '\'' +
+			", reported=" + reported +
 			", created=" + created +
 			'}';
 	}
