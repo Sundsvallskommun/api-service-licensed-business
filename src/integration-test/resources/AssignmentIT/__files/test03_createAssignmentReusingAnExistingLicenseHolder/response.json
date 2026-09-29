@@ -4,7 +4,7 @@
 		"id": "it-number-2",
 		"number": "22810003",
 		"municipalityId": "2281",
-		"reported": true,
+		"reported": false,
 		"created": "${json-unit.any-string}"
 	},
 	"address": {
