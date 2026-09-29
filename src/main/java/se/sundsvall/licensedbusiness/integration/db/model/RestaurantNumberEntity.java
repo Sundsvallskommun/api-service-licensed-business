@@ -46,6 +46,9 @@ public class RestaurantNumberEntity {
 	@JoinColumn(name = "address_id", nullable = false, foreignKey = @ForeignKey(name = "FK_RESTAURANT_NUMBER_ADDRESS"))
 	private AddressEntity address;
 
+	@Column(name = "reported", nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
+	private Boolean reported;
+
 	@Column(name = "created", columnDefinition = "DATETIME")
 	@TimeZoneStorage(NORMALIZE)
 	private OffsetDateTime created;
@@ -111,6 +114,19 @@ public class RestaurantNumberEntity {
 		return this;
 	}
 
+	public Boolean getReported() {
+		return reported;
+	}
+
+	public void setReported(Boolean reported) {
+		this.reported = reported;
+	}
+
+	public RestaurantNumberEntity withReported(Boolean reported) {
+		this.reported = reported;
+		return this;
+	}
+
 	public OffsetDateTime getCreated() {
 		return created;
 	}
@@ -129,12 +145,13 @@ public class RestaurantNumberEntity {
 		if (o == null || getClass() != o.getClass())
 			return false;
 		RestaurantNumberEntity that = (RestaurantNumberEntity) o;
-		return Objects.equals(id, that.id) && Objects.equals(restaurantNumber, that.restaurantNumber) && Objects.equals(municipalityId, that.municipalityId) && Objects.equals(created, that.created);
+		return Objects.equals(id, that.id) && Objects.equals(restaurantNumber, that.restaurantNumber) && Objects.equals(municipalityId, that.municipalityId) && Objects.equals(reported, that.reported)
+			&& Objects.equals(created, that.created);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(id, restaurantNumber, municipalityId, created);
+		return Objects.hash(id, restaurantNumber, municipalityId, reported, created);
 	}
 
 	@Override
@@ -143,6 +160,7 @@ public class RestaurantNumberEntity {
 			"id='" + id + '\'' +
 			", restaurantNumber='" + restaurantNumber + '\'' +
 			", municipalityId='" + municipalityId + '\'' +
+			", reported=" + reported +
 			", created=" + created +
 			'}';
 	}

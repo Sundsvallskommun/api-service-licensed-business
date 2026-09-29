@@ -1,0 +1,2 @@
+ALTER TABLE restaurant_number
+    ADD COLUMN reported BOOLEAN NOT NULL DEFAULT TRUE;

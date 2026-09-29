@@ -45,11 +45,13 @@ class RestaurantNumberTest {
 			.withId(ID)
 			.withNumber(NUMBER)
 			.withMunicipalityId(MUNICIPALITY_ID)
+			.withReported(true)
 			.withCreated(CREATED);
 
 		assertThat(restaurantNumber.getId()).isEqualTo(ID);
 		assertThat(restaurantNumber.getNumber()).isEqualTo(NUMBER);
 		assertThat(restaurantNumber.getMunicipalityId()).isEqualTo(MUNICIPALITY_ID);
+		assertThat(restaurantNumber.getReported()).isTrue();
 		assertThat(restaurantNumber.getCreated()).isEqualTo(CREATED);
 		assertThat(restaurantNumber).hasNoNullFieldsOrProperties();
 	}
@@ -60,11 +62,13 @@ class RestaurantNumberTest {
 		restaurantNumber.setId(ID);
 		restaurantNumber.setNumber(NUMBER);
 		restaurantNumber.setMunicipalityId(MUNICIPALITY_ID);
+		restaurantNumber.setReported(true);
 		restaurantNumber.setCreated(CREATED);
 
 		assertThat(restaurantNumber.getId()).isEqualTo(ID);
 		assertThat(restaurantNumber.getNumber()).isEqualTo(NUMBER);
 		assertThat(restaurantNumber.getMunicipalityId()).isEqualTo(MUNICIPALITY_ID);
+		assertThat(restaurantNumber.getReported()).isTrue();
 		assertThat(restaurantNumber.getCreated()).isEqualTo(CREATED);
 		assertThat(restaurantNumber).hasNoNullFieldsOrProperties();
 	}

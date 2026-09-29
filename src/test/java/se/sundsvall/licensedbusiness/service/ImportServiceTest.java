@@ -84,6 +84,10 @@ class ImportServiceTest {
 		final var assignmentCaptor = ArgumentCaptor.forClass(RestaurantNumberAssignmentEntity.class);
 		verify(restaurantNumberAssignmentRepository, times(2)).save(assignmentCaptor.capture());
 		assertThat(assignmentCaptor.getAllValues()).extracting(RestaurantNumberAssignmentEntity::getAddress).containsOnly(savedStorgatan);
+
+		final var restaurantNumberCaptor = ArgumentCaptor.forClass(RestaurantNumberEntity.class);
+		verify(restaurantNumberRepository).save(restaurantNumberCaptor.capture());
+		assertThat(restaurantNumberCaptor.getValue().getReported()).isTrue();
 	}
 
 	@Test

@@ -144,7 +144,8 @@ public class ImportService {
 			restaurantNumberEntity = restaurantNumberRepository.save(RestaurantNumberEntity.create()
 				.withRestaurantNumber(restaurantNumber)
 				.withMunicipalityId(municipalityId)
-				.withAddress(address));
+				.withAddress(address)
+				.withReported(true));
 			restaurantNumbersCreated = 1;
 			addressValidFromPerNumber.put(restaurantNumber, validFrom);
 		} else {

@@ -2,6 +2,7 @@ package apptest;
 
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.jdbc.Sql;
 import se.sundsvall.dept44.test.AbstractAppTest;
 import se.sundsvall.dept44.test.annotation.wiremock.WireMockAppTestSuite;
@@ -211,6 +212,41 @@ class AddressIT extends AbstractAppTest {
 		assertThat(lookedUp.getStreetAddress()).isEqualToIgnoringCase("Nygatan 7A");
 		assertThat(lookedUp.getPostalCode()).isEqualTo("852 99");
 		assertThat(lookedUp.getMunicipalityId()).isEqualTo(MUNICIPALITY_ID);
+	}
+
+	@Test
+	void test12_getAddressRestaurantNumbersWithAnActiveNumber() {
+		getAddressRestaurantNumbers("it-address-1", OK);
+	}
+
+	@Test
+	void test13_getAddressRestaurantNumbersWithAVacatedNumber() {
+		getAddressRestaurantNumbers("it-address-3", OK);
+	}
+
+	@Test
+	void test14_getAddressRestaurantNumbersWithANeverAssignedNumber() {
+		getAddressRestaurantNumbers("it-address-2", OK);
+	}
+
+	@Test
+	void test15_getAddressRestaurantNumbersForAddressInOtherMunicipality() {
+		getAddressRestaurantNumbers("it-address-4", NOT_FOUND);
+	}
+
+	@Test
+	void test16_getAddressRestaurantNumbersForUnknownAddress() {
+		getAddressRestaurantNumbers("does-not-exist", NOT_FOUND);
+	}
+
+	private void getAddressRestaurantNumbers(final String addressId, final HttpStatus expectedStatus) {
+		setupCall()
+			.withServicePath(fromPath(PATH + "/{addressId}/restaurant-numbers").build(MUNICIPALITY_ID, addressId).toString())
+			.withHttpMethod(GET)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withExpectedResponseStatus(expectedStatus)
+			.withExpectedResponse(RESPONSE_FILE)
+			.sendRequestAndVerifyResponse();
 	}
 
 	// The rest template encodes the path it is given, so the query values are handed over unencoded.

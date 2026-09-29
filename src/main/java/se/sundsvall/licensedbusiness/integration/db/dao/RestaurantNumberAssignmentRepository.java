@@ -28,4 +28,6 @@ public interface RestaurantNumberAssignmentRepository extends JpaRepository<Rest
 	List<RestaurantNumberAssignmentEntity> findAllByRestaurantNumberAndStatus(RestaurantNumberEntity restaurantNumber, AssignmentStatus status);
 
 	List<RestaurantNumberAssignmentEntity> findAllByRestaurantNumber(RestaurantNumberEntity restaurantNumber);
+
+	List<RestaurantNumberAssignmentEntity> findAllByRestaurantNumber_Address_Id(String addressId);
 }

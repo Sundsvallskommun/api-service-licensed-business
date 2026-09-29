@@ -3,11 +3,13 @@ package se.sundsvall.licensedbusiness.api;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.headers.Header;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -22,13 +24,16 @@ import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.licensedbusiness.api.model.Address;
 import se.sundsvall.licensedbusiness.api.model.AddressLookupParameters;
 import se.sundsvall.licensedbusiness.api.model.AddressPagingParameters;
+import se.sundsvall.licensedbusiness.api.model.AddressRestaurantNumber;
 import se.sundsvall.licensedbusiness.api.model.AddressSearchParameters;
 import se.sundsvall.licensedbusiness.api.model.Addresses;
 import se.sundsvall.licensedbusiness.service.AddressService;
+import se.sundsvall.licensedbusiness.service.RestaurantNumberService;
 
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpHeaders.LOCATION;
 import static org.springframework.http.MediaType.ALL_VALUE;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON_VALUE;
 import static org.springframework.web.util.UriComponentsBuilder.fromPath;
 
@@ -43,8 +48,11 @@ class AddressResource {
 
 	private final AddressService addressService;
 
-	AddressResource(final AddressService addressService) {
+	private final RestaurantNumberService restaurantNumberService;
+
+	AddressResource(final AddressService addressService, final RestaurantNumberService restaurantNumberService) {
 		this.addressService = addressService;
+		this.restaurantNumberService = restaurantNumberService;
 	}
 
 	@Operation(summary = "Get a paged list of addresses", responses = {
@@ -66,6 +74,20 @@ class AddressResource {
 		@Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @PathVariable @ValidMunicipalityId final String municipalityId,
 		@Parameter(name = "addressId", description = "Address ID", example = "9ce333ec-a473-438b-8406-a71e957dc107") @PathVariable final String addressId) {
 		return ResponseEntity.ok(addressService.getAddress(municipalityId, addressId));
+	}
+
+	@Operation(summary = "Get every restaurant number at an address",
+		description = "Each restaurant number carries its status, ACTIVE when it has an active assignment and otherwise AVAILABLE, and the premises name and period of the assignment "
+			+ "running today. An ACTIVE number without one shows its active assignment, and an AVAILABLE number shows its previous one.",
+		responses = {
+			@ApiResponse(responseCode = "200", description = "OK", content = @Content(mediaType = APPLICATION_JSON_VALUE, array = @ArraySchema(schema = @Schema(implementation = AddressRestaurantNumber.class)))),
+			@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))
+		})
+	@GetMapping("/{addressId}/restaurant-numbers")
+	ResponseEntity<List<AddressRestaurantNumber>> getAddressRestaurantNumbers(
+		@Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @PathVariable @ValidMunicipalityId final String municipalityId,
+		@Parameter(name = "addressId", description = "Address ID", example = "9ce333ec-a473-438b-8406-a71e957dc107") @PathVariable final String addressId) {
+		return ResponseEntity.ok(restaurantNumberService.getAddressRestaurantNumbers(municipalityId, addressId));
 	}
 
 	@Operation(summary = "Search addresses", responses = {

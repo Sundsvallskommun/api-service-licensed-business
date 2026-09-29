@@ -58,3 +58,6 @@ application-default.*
 # Local import data (never commit real business data)
 *.xlsx
 restaurant-numbers-import.csv
+
+# Local documentation
+docs/
