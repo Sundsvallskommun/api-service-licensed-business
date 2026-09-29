@@ -614,7 +614,7 @@ paths:
       description: "Each restaurant number carries its status, ACTIVE when it has\
         \ an active assignment and otherwise AVAILABLE, and the premises name and\
         \ period of the assignment running today. An ACTIVE number without one shows\
-        \ its next active assignment, and an AVAILABLE number shows its previous one."
+        \ its active assignment, and an AVAILABLE number shows its previous one."
       operationId: getAddressRestaurantNumbers
       parameters:
       - name: municipalityId
@@ -1165,8 +1165,8 @@ components:
       type: object
       description: "Restaurant number at an address, with its status and the premises\
         \ name and period of its current assignment. An ACTIVE number without a current\
-        \ assignment shows its next active one, and an AVAILABLE number shows its\
-        \ previous one."
+        \ assignment shows its active one, and an AVAILABLE number shows its previous\
+        \ one."
       properties:
         id:
           type: string
