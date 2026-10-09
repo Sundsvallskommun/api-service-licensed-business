@@ -3,6 +3,7 @@ package se.sundsvall.licensedbusiness.api.model;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.Objects;
@@ -27,6 +28,7 @@ public class AssignmentCreateRequest {
 	@Schema(description = "Name of the license holder as registered for this assignment", examples = "Restaurang i Sundsvall AB")
 	private String holderName;
 
+	@Pattern(regexp = ".*\\S.*", message = "must not be blank")
 	@Schema(description = "Name of the premises", examples = "Harrys Pub")
 	private String premisesName;
 

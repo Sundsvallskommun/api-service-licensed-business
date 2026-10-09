@@ -13,6 +13,7 @@ public class AssignmentUpdateRequest {
 	@Schema(description = "Last day the assignment is valid", examples = "2026-12-31")
 	private LocalDate validTo;
 
+	@Pattern(regexp = ".*\\S.*", message = "must not be blank")
 	@Schema(description = "Name of the premises", examples = "Harrys Pub")
 	private String premisesName;
 

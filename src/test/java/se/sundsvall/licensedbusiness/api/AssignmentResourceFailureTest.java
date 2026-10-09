@@ -143,6 +143,56 @@ class AssignmentResourceFailureTest {
 	}
 
 	@Test
+	void createAssignmentWithBlankPremisesName() {
+		final var request = AssignmentCreateRequest.create()
+			.withRestaurantNumberId("rn-1")
+			.withAddressId("address-1")
+			.withOrgNumber("556612-4144")
+			.withHolderName("Restaurang i Sundsvall AB")
+			.withPremisesName("   ")
+			.withValidFrom(LocalDate.of(2026, 1, 1));
+
+		final var response = webTestClient.post()
+			.uri(builder -> builder.path(PATH).build(Map.of("municipalityId", MUNICIPALITY_ID)))
+			.contentType(APPLICATION_JSON)
+			.bodyValue(request)
+			.exchange()
+			.expectStatus().isBadRequest()
+			.expectBody(ConstraintViolationProblem.class)
+			.returnResult()
+			.getResponseBody();
+
+		assertThat(response).isNotNull();
+		assertThat(response.getStatus()).isEqualTo(BAD_REQUEST);
+		assertThat(response.getViolations())
+			.extracting(Violation::field, Violation::message)
+			.containsExactly(tuple("premisesName", "must not be blank"));
+
+		verifyNoInteractions(assignmentServiceMock);
+	}
+
+	@Test
+	void updateAssignmentWithBlankPremisesName() {
+		final var response = webTestClient.patch()
+			.uri(builder -> builder.path(PATH + "/{assignmentId}").build(Map.of("municipalityId", MUNICIPALITY_ID, "assignmentId", "assignment-1")))
+			.contentType(APPLICATION_JSON)
+			.bodyValue(AssignmentUpdateRequest.create().withPremisesName(""))
+			.exchange()
+			.expectStatus().isBadRequest()
+			.expectBody(ConstraintViolationProblem.class)
+			.returnResult()
+			.getResponseBody();
+
+		assertThat(response).isNotNull();
+		assertThat(response.getStatus()).isEqualTo(BAD_REQUEST);
+		assertThat(response.getViolations())
+			.extracting(Violation::field, Violation::message)
+			.containsExactly(tuple("premisesName", "must not be blank"));
+
+		verifyNoInteractions(assignmentServiceMock);
+	}
+
+	@Test
 	void getAssignmentWithInvalidMunicipalityId() {
 		final var response = webTestClient.get()
 			.uri(builder -> builder.path(PATH + "/{assignmentId}").build(Map.of("municipalityId", INVALID_MUNICIPALITY_ID, "assignmentId", "assignment-1")))

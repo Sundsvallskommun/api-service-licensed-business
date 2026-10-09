@@ -918,6 +918,7 @@ components:
           description: Name of the premises
           examples:
           - Harrys Pub
+          pattern: .*\S.*
         validFrom:
           type: string
           format: date
@@ -995,6 +996,7 @@ components:
           description: Name of the premises
           examples:
           - Harrys Pub
+          pattern: .*\S.*
         holderName:
           type: string
           description: "Name of the license holder as registered for this assignment,\
