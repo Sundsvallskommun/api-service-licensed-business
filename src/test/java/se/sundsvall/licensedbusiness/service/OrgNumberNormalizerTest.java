@@ -36,8 +36,16 @@ class OrgNumberNormalizerTest {
 	}
 
 	@Test
+	void dropsTheCenturyFromAPersonalIdentityNumber() {
+		assertThat(normalize("198001011234")).isEqualTo("800101-1234");
+		assertThat(normalize("19800101-1234")).isEqualTo("800101-1234");
+		assertThat(normalize("200001011234")).isEqualTo("000101-1234");
+	}
+
+	@Test
 	void keepsAnythingThatIsNotTenDigitsAsTyped() {
 		assertThat(normalize(" 12345 ")).isEqualTo("12345");
 		assertThat(normalize("not a number")).isEqualTo("not a number");
+		assertThat(normalize("215566124144")).isEqualTo("215566124144");
 	}
 }

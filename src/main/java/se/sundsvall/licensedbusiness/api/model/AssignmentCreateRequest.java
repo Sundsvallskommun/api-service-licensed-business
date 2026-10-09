@@ -3,6 +3,7 @@ package se.sundsvall.licensedbusiness.api.model;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.Objects;
 
@@ -18,7 +19,8 @@ public class AssignmentCreateRequest {
 	private String addressId;
 
 	@NotBlank
-	@Schema(description = "Organization number of the license holder", examples = "556612-4144")
+	@Size(min = 1, max = 13)
+	@Schema(description = "Organization number of the license holder. A personal identity number with century (12 digits) is accepted and stored with 10 digits", examples = "556612-4144")
 	private String orgNumber;
 
 	@NotBlank

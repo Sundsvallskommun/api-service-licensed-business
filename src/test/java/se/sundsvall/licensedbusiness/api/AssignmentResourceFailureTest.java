@@ -66,6 +66,34 @@ class AssignmentResourceFailureTest {
 	}
 
 	@Test
+	void createAssignmentWithTooLongOrgNumber() {
+		final var request = AssignmentCreateRequest.create()
+			.withRestaurantNumberId("rn-1")
+			.withAddressId("address-1")
+			.withOrgNumber("19800101-12345")
+			.withHolderName("Restaurang i Sundsvall AB")
+			.withValidFrom(LocalDate.of(2026, 1, 1));
+
+		final var response = webTestClient.post()
+			.uri(builder -> builder.path(PATH).build(Map.of("municipalityId", MUNICIPALITY_ID)))
+			.contentType(APPLICATION_JSON)
+			.bodyValue(request)
+			.exchange()
+			.expectStatus().isBadRequest()
+			.expectBody(ConstraintViolationProblem.class)
+			.returnResult()
+			.getResponseBody();
+
+		assertThat(response).isNotNull();
+		assertThat(response.getStatus()).isEqualTo(BAD_REQUEST);
+		assertThat(response.getViolations())
+			.extracting(Violation::field, Violation::message)
+			.containsExactly(tuple("orgNumber", "size must be between 1 and 13"));
+
+		verifyNoInteractions(assignmentServiceMock);
+	}
+
+	@Test
 	void createAssignmentWithInvalidMunicipalityId() {
 		final var request = AssignmentCreateRequest.create()
 			.withRestaurantNumberId("rn-1")
