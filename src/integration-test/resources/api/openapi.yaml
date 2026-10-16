@@ -106,8 +106,8 @@ paths:
     post:
       tags:
       - Assignment Resources
-      summary: "Create an assignment, ending any active assignment on the same restaurant\
-        \ number"
+      summary: Create an assignment. Existing assignments on the restaurant number
+        are left unchanged
       operationId: createAssignment
       parameters:
       - name: municipalityId

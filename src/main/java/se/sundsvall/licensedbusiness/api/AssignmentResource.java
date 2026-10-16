@@ -56,7 +56,7 @@ class AssignmentResource {
 		return ResponseEntity.ok(assignmentService.getAssignment(municipalityId, assignmentId));
 	}
 
-	@Operation(summary = "Create an assignment, ending any active assignment on the same restaurant number", responses = {
+	@Operation(summary = "Create an assignment. Existing assignments on the restaurant number are left unchanged", responses = {
 		@ApiResponse(responseCode = "201", description = "Created", headers = @Header(name = LOCATION, schema = @Schema(type = "string"))),
 		@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))
 	})
