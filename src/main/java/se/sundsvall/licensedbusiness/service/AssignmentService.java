@@ -22,7 +22,6 @@ import se.sundsvall.licensedbusiness.service.mapper.AssignmentMapper;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
-import static se.sundsvall.licensedbusiness.integration.db.model.enums.AssignmentStatus.ACTIVE;
 import static se.sundsvall.licensedbusiness.service.AssignmentStatusResolver.resolveStatus;
 import static se.sundsvall.licensedbusiness.service.TextSanitizer.sanitize;
 
@@ -106,27 +105,13 @@ public class AssignmentService {
 
 		validateValidToNotBeforeValidFrom(entity.getValidFrom(), entity.getValidTo());
 
-		final var status = resolveStatus(entity.getValidTo());
-		if (status == ACTIVE) {
-			validateNoOtherActiveAssignment(entity);
-		}
-		entity.setStatus(status);
+		entity.setStatus(resolveStatus(entity.getValidTo()));
 
 		try {
 			return assignmentMapper.toAssignment(restaurantNumberAssignmentRepository.saveAndFlush(entity));
 		} catch (final OptimisticLockingFailureException e) {
 			throw Problem.valueOf(CONFLICT, "Assignment %s was updated by someone else, please reload it and try again".formatted(sanitize(assignmentId)));
 		}
-	}
-
-	private void validateNoOtherActiveAssignment(final RestaurantNumberAssignmentEntity assignment) {
-		restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatus(assignment.getRestaurantNumber(), ACTIVE).stream()
-			.filter(other -> !other.getId().equals(assignment.getId()))
-			.findFirst()
-			.ifPresent(other -> {
-				throw Problem.valueOf(BAD_REQUEST, "Restaurant number %s already has an active assignment with ID %s".formatted(
-					sanitize(assignment.getRestaurantNumber().getRestaurantNumber()), sanitize(other.getId())));
-			});
 	}
 
 	private static void validateAddressBelongsToRestaurantNumber(final RestaurantNumberEntity restaurantNumber, final AddressEntity address) {

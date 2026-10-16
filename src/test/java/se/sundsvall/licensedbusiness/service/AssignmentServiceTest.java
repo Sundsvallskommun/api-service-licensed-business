@@ -550,7 +550,36 @@ class AssignmentServiceTest {
 	}
 
 	@Test
-	void updateAssignmentRejectsReopeningWhenTheNumberAlreadyHasAnActiveAssignment() {
+	void updateAssignmentSavesAChangeWhileAnotherAssignmentOnTheNumberIsActive() {
+		final var restaurantNumber = restaurantNumberEntity();
+		final var entity = RestaurantNumberAssignmentEntity.create()
+			.withId(ASSIGNMENT_ID)
+			.withRestaurantNumber(restaurantNumber)
+			.withPremisesName("Krogen")
+			.withValidFrom(LocalDate.of(2020, 1, 1))
+			.withStatus(ACTIVE);
+		final var other = RestaurantNumberAssignmentEntity.create()
+			.withId("assignment-other")
+			.withRestaurantNumber(restaurantNumber)
+			.withValidFrom(LocalDate.of(2026, 3, 1))
+			.withStatus(ACTIVE);
+		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(entity));
+		lenient().when(restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatus(restaurantNumber, ACTIVE)).thenReturn(List.of(entity, other));
+		when(restaurantNumberAssignmentRepository.saveAndFlush(entity)).thenReturn(entity);
+
+		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withPremisesName("Nya krogen"));
+
+		assertThat(result.getId()).isEqualTo(ASSIGNMENT_ID);
+		assertThat(result.getPremisesName()).isEqualTo("Nya krogen");
+		assertThat(result.getValidTo()).isNull();
+		assertThat(result.getStatus()).isEqualTo(ACTIVE.name());
+		verify(restaurantNumberAssignmentRepository).saveAndFlush(entity);
+		assertThat(other.getValidTo()).isNull();
+		assertThat(other.getStatus()).isEqualTo(ACTIVE);
+	}
+
+	@Test
+	void updateAssignmentReopensAnEndedAssignmentWhileAnotherAssignmentOnTheNumberIsActive() {
 		final var restaurantNumber = restaurantNumberEntity();
 		final var entity = RestaurantNumberAssignmentEntity.create()
 			.withId(ASSIGNMENT_ID)
@@ -558,30 +587,13 @@ class AssignmentServiceTest {
 			.withValidFrom(LocalDate.of(2020, 1, 1))
 			.withValidTo(LocalDate.of(2020, 12, 31))
 			.withStatus(ENDED);
-		final var other = RestaurantNumberAssignmentEntity.create().withId("assignment-current").withStatus(ACTIVE);
-		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(entity));
-		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatus(restaurantNumber, ACTIVE)).thenReturn(List.of(other));
-
-		final var assignmentService = assignmentService();
-		final var request = AssignmentUpdateRequest.create().withValidTo(LocalDate.now().plusYears(1));
-
-		assertThatThrownBy(() -> assignmentService.updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, request))
-			.isInstanceOf(Problem.class)
-			.hasMessageContaining("Restaurant number %s already has an active assignment with ID assignment-current".formatted(RESTAURANT_NUMBER))
-			.extracting("status").isEqualTo(BAD_REQUEST);
-		verify(restaurantNumberAssignmentRepository, never()).save(any());
-	}
-
-	@Test
-	void updateAssignmentDoesNotCountTheAssignmentBeingUpdatedAsAConflict() {
-		final var restaurantNumber = restaurantNumberEntity();
-		final var entity = RestaurantNumberAssignmentEntity.create()
-			.withId(ASSIGNMENT_ID)
+		final var other = RestaurantNumberAssignmentEntity.create()
+			.withId("assignment-current")
 			.withRestaurantNumber(restaurantNumber)
-			.withValidFrom(LocalDate.of(2020, 1, 1))
+			.withValidFrom(LocalDate.of(2021, 1, 1))
 			.withStatus(ACTIVE);
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(entity));
-		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatus(restaurantNumber, ACTIVE)).thenReturn(List.of(entity));
+		lenient().when(restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatus(restaurantNumber, ACTIVE)).thenReturn(List.of(other));
 		when(restaurantNumberAssignmentRepository.saveAndFlush(entity)).thenReturn(entity);
 
 		final var future = LocalDate.now().plusYears(1);
@@ -589,5 +601,8 @@ class AssignmentServiceTest {
 
 		assertThat(result.getValidTo()).isEqualTo(future);
 		assertThat(result.getStatus()).isEqualTo(ACTIVE.name());
+		verify(restaurantNumberAssignmentRepository).saveAndFlush(entity);
+		assertThat(other.getValidTo()).isNull();
+		assertThat(other.getStatus()).isEqualTo(ACTIVE);
 	}
 }

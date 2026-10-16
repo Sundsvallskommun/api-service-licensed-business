@@ -191,6 +191,38 @@ class AssignmentIT extends AbstractAppTest {
 	}
 
 	@Test
+	void test10_updateAssignmentWhileAnotherAssignmentOnTheNumberIsActive() {
+		final var location = setupCall()
+			.withServicePath(fromPath(PATH).build(MUNICIPALITY_ID).toString())
+			.withHttpMethod(POST)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withRequest("request-create.json")
+			.withExpectedResponseStatus(CREATED)
+			.sendRequestAndVerifyResponse()
+			.getResponseHeaders()
+			.getLocation();
+
+		assertThat(location).isNotNull();
+
+		setupCall()
+			.withServicePath(fromPath(PATH + "/{assignmentId}").build(MUNICIPALITY_ID, "it-assignment-1").toString())
+			.withHttpMethod(PATCH)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withRequest(REQUEST_FILE)
+			.withExpectedResponseStatus(OK)
+			.withExpectedResponse(RESPONSE_FILE)
+			.sendRequestAndVerifyResponse();
+
+		setupCall()
+			.withServicePath(location.getPath())
+			.withHttpMethod(GET)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withExpectedResponseStatus(OK)
+			.withExpectedResponse("response-created.json")
+			.sendRequestAndVerifyResponse();
+	}
+
+	@Test
 	void test08_updateUnknownAssignment() {
 		setupCall()
 			.withServicePath(fromPath(PATH + "/{assignmentId}").build(MUNICIPALITY_ID, "does-not-exist").toString())
