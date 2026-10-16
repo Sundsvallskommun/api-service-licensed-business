@@ -28,10 +28,11 @@ import se.sundsvall.licensedbusiness.service.mapper.RestaurantNumberMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
@@ -200,16 +201,14 @@ class AssignmentServiceTest {
 		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(addressEntity()));
 		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.of(LicenseHolderEntity.create().withId("holder-1").withOrgNumber(ORG_NUMBER)));
-		lenient().when(restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatusOrderByValidFromAscCreatedAsc(restaurantNumber, ACTIVE)).thenReturn(List.of(existing));
 		when(restaurantNumberAssignmentRepository.save(any())).thenAnswer(invocation -> ((RestaurantNumberAssignmentEntity) invocation.getArgument(0)).withId(ASSIGNMENT_ID));
 
 		final var result = assignmentService().createAssignment(MUNICIPALITY_ID, request);
 
 		assertThat(result).isEqualTo(ASSIGNMENT_ID);
 		final var captor = ArgumentCaptor.forClass(RestaurantNumberAssignmentEntity.class);
-		verify(restaurantNumberAssignmentRepository, times(1)).save(captor.capture());
-		verify(restaurantNumberAssignmentRepository, never()).saveAll(any());
-		verify(restaurantNumberAssignmentRepository, never()).saveAndFlush(any());
+		verify(restaurantNumberAssignmentRepository).save(captor.capture());
+		verifyNoMoreInteractions(restaurantNumberAssignmentRepository);
 		return captor.getValue();
 	}
 
@@ -564,7 +563,6 @@ class AssignmentServiceTest {
 			.withValidFrom(LocalDate.of(2026, 3, 1))
 			.withStatus(ACTIVE);
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(entity));
-		lenient().when(restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatusOrderByValidFromAscCreatedAsc(restaurantNumber, ACTIVE)).thenReturn(List.of(entity, other));
 		when(restaurantNumberAssignmentRepository.saveAndFlush(entity)).thenReturn(entity);
 
 		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withPremisesName("Nya krogen"));
@@ -573,7 +571,9 @@ class AssignmentServiceTest {
 		assertThat(result.getPremisesName()).isEqualTo("Nya krogen");
 		assertThat(result.getValidTo()).isNull();
 		assertThat(result.getStatus()).isEqualTo(ACTIVE.name());
+		verify(restaurantNumberAssignmentRepository).findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID);
 		verify(restaurantNumberAssignmentRepository).saveAndFlush(entity);
+		verifyNoMoreInteractions(restaurantNumberAssignmentRepository);
 		assertThat(other.getValidTo()).isNull();
 		assertThat(other.getStatus()).isEqualTo(ACTIVE);
 	}
@@ -593,7 +593,6 @@ class AssignmentServiceTest {
 			.withValidFrom(LocalDate.of(2021, 1, 1))
 			.withStatus(ACTIVE);
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(entity));
-		lenient().when(restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatusOrderByValidFromAscCreatedAsc(restaurantNumber, ACTIVE)).thenReturn(List.of(other));
 		when(restaurantNumberAssignmentRepository.saveAndFlush(entity)).thenReturn(entity);
 
 		final var future = LocalDate.now().plusYears(1);
@@ -601,7 +600,9 @@ class AssignmentServiceTest {
 
 		assertThat(result.getValidTo()).isEqualTo(future);
 		assertThat(result.getStatus()).isEqualTo(ACTIVE.name());
+		verify(restaurantNumberAssignmentRepository).findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID);
 		verify(restaurantNumberAssignmentRepository).saveAndFlush(entity);
+		verifyNoMoreInteractions(restaurantNumberAssignmentRepository);
 		assertThat(other.getValidTo()).isNull();
 		assertThat(other.getStatus()).isEqualTo(ACTIVE);
 	}
@@ -638,6 +639,10 @@ class AssignmentServiceTest {
 		assertThat(result.get(1).getAddress().getStreetAddress()).isEqualTo("Storgatan 1");
 		assertThat(result.get(1).getLicenseHolder().getOrgNumber()).isEqualTo("556600-3344");
 		assertThat(result.get(1).getRestaurantNumber().getNumber()).isEqualTo(RESTAURANT_NUMBER);
+		verify(restaurantNumberRepository).findByRestaurantNumberAndMunicipalityId(RESTAURANT_NUMBER, MUNICIPALITY_ID);
+		verify(restaurantNumberAssignmentRepository).findAllByRestaurantNumberAndStatusOrderByValidFromAscCreatedAsc(restaurantNumber, ACTIVE);
+		verifyNoMoreInteractions(restaurantNumberRepository, restaurantNumberAssignmentRepository);
+		verifyNoInteractions(addressRepository, licenseHolderRepository);
 	}
 
 	@Test
@@ -649,6 +654,10 @@ class AssignmentServiceTest {
 		final var result = assignmentService().getActiveAssignments(MUNICIPALITY_ID, RESTAURANT_NUMBER);
 
 		assertThat(result).isNotNull().isEmpty();
+		verify(restaurantNumberRepository).findByRestaurantNumberAndMunicipalityId(RESTAURANT_NUMBER, MUNICIPALITY_ID);
+		verify(restaurantNumberAssignmentRepository).findAllByRestaurantNumberAndStatusOrderByValidFromAscCreatedAsc(restaurantNumber, ACTIVE);
+		verifyNoMoreInteractions(restaurantNumberRepository, restaurantNumberAssignmentRepository);
+		verifyNoInteractions(addressRepository, licenseHolderRepository);
 	}
 
 	@Test
@@ -662,6 +671,7 @@ class AssignmentServiceTest {
 			.hasMessageContaining("Restaurant number " + RESTAURANT_NUMBER + " not found")
 			.extracting("status").isEqualTo(NOT_FOUND);
 		verify(restaurantNumberRepository).findByRestaurantNumberAndMunicipalityId(RESTAURANT_NUMBER, MUNICIPALITY_ID);
-		verify(restaurantNumberAssignmentRepository, never()).findAllByRestaurantNumberAndStatusOrderByValidFromAscCreatedAsc(any(), any());
+		verifyNoMoreInteractions(restaurantNumberRepository);
+		verifyNoInteractions(restaurantNumberAssignmentRepository, addressRepository, licenseHolderRepository);
 	}
 }

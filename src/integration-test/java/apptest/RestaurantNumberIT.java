@@ -136,8 +136,6 @@ class RestaurantNumberIT extends AbstractAppTest {
 			.sendRequestAndVerifyResponse();
 	}
 
-	// 22810001 has Provkrogen active since 2020. The test adds Pizzerian, active from 2026-03-01, and an ended period from
-	// 2018.
 	@Test
 	void test09_getActiveAssignments() {
 		createAssignment("request-pizzerian.json");

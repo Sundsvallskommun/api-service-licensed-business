@@ -12,6 +12,8 @@ import se.sundsvall.licensedbusiness.service.RestaurantNumberService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.OK;
@@ -79,6 +81,8 @@ class RestaurantNumberResourceTest {
 		assertThat(response.getStatusCode()).isEqualTo(OK);
 		assertThat(response.getBody()).isEqualTo(expected);
 		verify(assignmentService).getActiveAssignments(MUNICIPALITY_ID, RESTAURANT_NUMBER);
+		verifyNoMoreInteractions(assignmentService);
+		verifyNoInteractions(restaurantNumberService);
 	}
 
 	@Test

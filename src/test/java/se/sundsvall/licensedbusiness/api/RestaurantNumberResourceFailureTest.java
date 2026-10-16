@@ -109,6 +109,6 @@ class RestaurantNumberResourceFailureTest {
 			.extracting(Violation::field, Violation::message)
 			.containsExactly(tuple("getActiveAssignments.municipalityId", "not a valid municipality ID"));
 
-		verifyNoInteractions(assignmentServiceMock);
+		verifyNoInteractions(assignmentServiceMock, restaurantNumberServiceMock);
 	}
 }

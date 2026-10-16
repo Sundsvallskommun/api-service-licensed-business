@@ -240,7 +240,6 @@ class AddressIT extends AbstractAppTest {
 		getAddressRestaurantNumbers("does-not-exist", NOT_FOUND);
 	}
 
-	// 22810001 has Provkrogen active since 2020; the test adds Pizzerian, active since 2026-03-01.
 	@Test
 	void test17_getAddressRestaurantNumbersWithTwoActiveAssignmentsOnTheNumber() {
 		createAssignment("request-pizzerian.json");
