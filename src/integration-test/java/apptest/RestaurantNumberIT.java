@@ -136,6 +136,69 @@ class RestaurantNumberIT extends AbstractAppTest {
 			.sendRequestAndVerifyResponse();
 	}
 
+	// 22810001 has Provkrogen active since 2020. The test adds Pizzerian, active from 2026-03-01, and an ended period from
+	// 2018.
+	@Test
+	void test09_getActiveAssignments() {
+		createAssignment("request-pizzerian.json");
+		createAssignment("request-ended.json");
+
+		setupCall()
+			.withServicePath(fromPath(PATH + "/{restaurantNumber}/assignments").build(MUNICIPALITY_ID, "22810001").toString())
+			.withHttpMethod(GET)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withJsonAssertOptions(List.of())
+			.withExpectedResponseStatus(OK)
+			.withExpectedResponse(RESPONSE_FILE)
+			.sendRequestAndVerifyResponse();
+	}
+
+	@Test
+	void test10_getActiveAssignmentsForANumberWithoutActiveAssignments() {
+		setupCall()
+			.withServicePath(fromPath(PATH + "/{restaurantNumber}/assignments").build(MUNICIPALITY_ID, "22810004").toString())
+			.withHttpMethod(GET)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withExpectedResponseStatus(OK)
+			.withExpectedResponse(RESPONSE_FILE)
+			.sendRequestAndVerifyResponse();
+	}
+
+	@Test
+	void test11_getActiveAssignmentsForUnknownRestaurantNumber() {
+		setupCall()
+			.withServicePath(fromPath(PATH + "/{restaurantNumber}/assignments").build(MUNICIPALITY_ID, "22819999").toString())
+			.withHttpMethod(GET)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withExpectedResponseStatus(NOT_FOUND)
+			.withExpectedResponseHeader(CONTENT_TYPE, List.of(APPLICATION_PROBLEM_JSON_VALUE))
+			.withExpectedResponse(RESPONSE_FILE)
+			.sendRequestAndVerifyResponse();
+	}
+
+	@Test
+	void test12_getLatestAssignmentWithTwoActiveAssignments() {
+		createAssignment("request-pizzerian.json");
+
+		setupCall()
+			.withServicePath(fromPath(PATH + "/{restaurantNumber}/assignment").build(MUNICIPALITY_ID, "22810001").toString())
+			.withHttpMethod(GET)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withExpectedResponseStatus(OK)
+			.withExpectedResponse(RESPONSE_FILE)
+			.sendRequestAndVerifyResponse();
+	}
+
+	private void createAssignment(final String requestFile) {
+		setupCall()
+			.withServicePath(fromPath("/{municipalityId}/assignments").build(MUNICIPALITY_ID).toString())
+			.withHttpMethod(POST)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withRequest(requestFile)
+			.withExpectedResponseStatus(CREATED)
+			.sendRequestAndVerifyResponse();
+	}
+
 	private static String availablePath(final String addressId) {
 		return fromPath(PATH + "/available").queryParam("addressId", addressId).build(MUNICIPALITY_ID).toString();
 	}

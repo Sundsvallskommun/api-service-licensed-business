@@ -12,6 +12,7 @@ import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.dept44.problem.violations.ConstraintViolationProblem;
 import se.sundsvall.dept44.problem.violations.Violation;
 import se.sundsvall.licensedbusiness.Application;
+import se.sundsvall.licensedbusiness.service.AssignmentService;
 import se.sundsvall.licensedbusiness.service.RestaurantNumberService;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,6 +34,9 @@ class RestaurantNumberResourceFailureTest {
 
 	@MockitoBean
 	private RestaurantNumberService restaurantNumberServiceMock;
+
+	@MockitoBean
+	private AssignmentService assignmentServiceMock;
 
 	@Test
 	void getAvailableRestaurantNumbersWithBlankAddressId() {
@@ -87,5 +91,24 @@ class RestaurantNumberResourceFailureTest {
 			.containsExactly(tuple("getAvailableRestaurantNumbers.municipalityId", "not a valid municipality ID"));
 
 		verifyNoInteractions(restaurantNumberServiceMock);
+	}
+
+	@Test
+	void getActiveAssignmentsWithInvalidMunicipalityId() {
+		final var response = webTestClient.get()
+			.uri(builder -> builder.path("/{municipalityId}/restaurant-numbers/{restaurantNumber}/assignments").build(Map.of("municipalityId", "invalid", "restaurantNumber", "22810001")))
+			.exchange()
+			.expectStatus().isBadRequest()
+			.expectBody(ConstraintViolationProblem.class)
+			.returnResult()
+			.getResponseBody();
+
+		assertThat(response).isNotNull();
+		assertThat(response.getStatus()).isEqualTo(BAD_REQUEST);
+		assertThat(response.getViolations())
+			.extracting(Violation::field, Violation::message)
+			.containsExactly(tuple("getActiveAssignments.municipalityId", "not a valid municipality ID"));
+
+		verifyNoInteractions(assignmentServiceMock);
 	}
 }

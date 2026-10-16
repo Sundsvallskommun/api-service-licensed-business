@@ -82,6 +82,17 @@ class RestaurantNumberResource {
 		return ResponseEntity.ok(assignmentService.getLatestAssignment(municipalityId, restaurantNumber));
 	}
 
+	@Operation(summary = "Get the active assignments for a restaurant number, including their address and license holder, oldest validFrom first", responses = {
+		@ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = Assignment.class)))),
+		@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))
+	})
+	@GetMapping("/{restaurantNumber}/assignments")
+	ResponseEntity<List<Assignment>> getActiveAssignments(
+		@Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @PathVariable @ValidMunicipalityId final String municipalityId,
+		@Parameter(name = "restaurantNumber", description = "Restaurant number", example = "22813670") @PathVariable final String restaurantNumber) {
+		return ResponseEntity.ok(assignmentService.getActiveAssignments(municipalityId, restaurantNumber));
+	}
+
 	@Operation(summary = "Create a restaurant number for an address, allocating the lowest free number in the municipality",
 		description = "The restaurant number belongs to the premises and stays on the address when one business is replaced by the next.",
 		responses = {

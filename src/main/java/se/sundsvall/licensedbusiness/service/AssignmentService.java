@@ -1,6 +1,7 @@
 package se.sundsvall.licensedbusiness.service;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ import se.sundsvall.licensedbusiness.service.mapper.AssignmentMapper;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static se.sundsvall.licensedbusiness.integration.db.model.enums.AssignmentStatus.ACTIVE;
 import static se.sundsvall.licensedbusiness.service.AssignmentStatusResolver.resolveStatus;
 import static se.sundsvall.licensedbusiness.service.TextSanitizer.sanitize;
 
@@ -55,6 +57,16 @@ public class AssignmentService {
 		return restaurantNumberAssignmentRepository.findFirstByRestaurantNumberOrderByValidFromDescCreatedDesc(restaurantNumberEntity)
 			.map(assignmentMapper::toAssignment)
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "No assignment found for restaurant number %s".formatted(sanitize(restaurantNumber))));
+	}
+
+	@Transactional(readOnly = true)
+	public List<Assignment> getActiveAssignments(final String municipalityId, final String restaurantNumber) {
+		final var restaurantNumberEntity = restaurantNumberRepository.findByRestaurantNumberAndMunicipalityId(restaurantNumber, municipalityId)
+			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Restaurant number %s not found".formatted(sanitize(restaurantNumber))));
+
+		return restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatusOrderByValidFromAscCreatedAsc(restaurantNumberEntity, ACTIVE).stream()
+			.map(assignmentMapper::toAssignment)
+			.toList();
 	}
 
 	@Transactional(readOnly = true)

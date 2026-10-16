@@ -200,7 +200,7 @@ class AssignmentServiceTest {
 		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(addressEntity()));
 		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.of(LicenseHolderEntity.create().withId("holder-1").withOrgNumber(ORG_NUMBER)));
-		lenient().when(restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatus(restaurantNumber, ACTIVE)).thenReturn(List.of(existing));
+		lenient().when(restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatusOrderByValidFromAscCreatedAsc(restaurantNumber, ACTIVE)).thenReturn(List.of(existing));
 		when(restaurantNumberAssignmentRepository.save(any())).thenAnswer(invocation -> ((RestaurantNumberAssignmentEntity) invocation.getArgument(0)).withId(ASSIGNMENT_ID));
 
 		final var result = assignmentService().createAssignment(MUNICIPALITY_ID, request);
@@ -564,7 +564,7 @@ class AssignmentServiceTest {
 			.withValidFrom(LocalDate.of(2026, 3, 1))
 			.withStatus(ACTIVE);
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(entity));
-		lenient().when(restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatus(restaurantNumber, ACTIVE)).thenReturn(List.of(entity, other));
+		lenient().when(restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatusOrderByValidFromAscCreatedAsc(restaurantNumber, ACTIVE)).thenReturn(List.of(entity, other));
 		when(restaurantNumberAssignmentRepository.saveAndFlush(entity)).thenReturn(entity);
 
 		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withPremisesName("Nya krogen"));
@@ -593,7 +593,7 @@ class AssignmentServiceTest {
 			.withValidFrom(LocalDate.of(2021, 1, 1))
 			.withStatus(ACTIVE);
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(entity));
-		lenient().when(restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatus(restaurantNumber, ACTIVE)).thenReturn(List.of(other));
+		lenient().when(restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatusOrderByValidFromAscCreatedAsc(restaurantNumber, ACTIVE)).thenReturn(List.of(other));
 		when(restaurantNumberAssignmentRepository.saveAndFlush(entity)).thenReturn(entity);
 
 		final var future = LocalDate.now().plusYears(1);
@@ -604,5 +604,64 @@ class AssignmentServiceTest {
 		verify(restaurantNumberAssignmentRepository).saveAndFlush(entity);
 		assertThat(other.getValidTo()).isNull();
 		assertThat(other.getStatus()).isEqualTo(ACTIVE);
+	}
+
+	@Test
+	void getActiveAssignmentsReturnsTheActiveAssignmentsInTheOrderTheRepositoryGives() {
+		final var restaurantNumber = restaurantNumberEntity();
+		final var krogen = RestaurantNumberAssignmentEntity.create()
+			.withId("assignment-krogen")
+			.withRestaurantNumber(restaurantNumber)
+			.withAddress(addressEntity())
+			.withLicenseHolder(LicenseHolderEntity.create().withId("holder-1").withOrgNumber(ORG_NUMBER))
+			.withHolderName("Krogen AB")
+			.withPremisesName("Krogen")
+			.withValidFrom(LocalDate.of(2020, 1, 1))
+			.withStatus(ACTIVE);
+		final var pizzerian = RestaurantNumberAssignmentEntity.create()
+			.withId("assignment-pizzerian")
+			.withRestaurantNumber(restaurantNumber)
+			.withAddress(addressEntity())
+			.withLicenseHolder(LicenseHolderEntity.create().withId("holder-2").withOrgNumber("556600-3344"))
+			.withHolderName("Pizzerian HB")
+			.withPremisesName("Pizzerian")
+			.withValidFrom(LocalDate.of(2026, 3, 1))
+			.withStatus(ACTIVE);
+		when(restaurantNumberRepository.findByRestaurantNumberAndMunicipalityId(RESTAURANT_NUMBER, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
+		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatusOrderByValidFromAscCreatedAsc(restaurantNumber, ACTIVE)).thenReturn(List.of(krogen, pizzerian));
+
+		final var result = assignmentService().getActiveAssignments(MUNICIPALITY_ID, RESTAURANT_NUMBER);
+
+		assertThat(result).extracting("id").containsExactly("assignment-krogen", "assignment-pizzerian");
+		assertThat(result).extracting("premisesName").containsExactly("Krogen", "Pizzerian");
+		assertThat(result).extracting("status").containsExactly(ACTIVE.name(), ACTIVE.name());
+		assertThat(result.get(1).getAddress().getStreetAddress()).isEqualTo("Storgatan 1");
+		assertThat(result.get(1).getLicenseHolder().getOrgNumber()).isEqualTo("556600-3344");
+		assertThat(result.get(1).getRestaurantNumber().getNumber()).isEqualTo(RESTAURANT_NUMBER);
+	}
+
+	@Test
+	void getActiveAssignmentsWithoutActiveAssignmentsReturnsAnEmptyList() {
+		final var restaurantNumber = restaurantNumberEntity();
+		when(restaurantNumberRepository.findByRestaurantNumberAndMunicipalityId(RESTAURANT_NUMBER, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
+		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatusOrderByValidFromAscCreatedAsc(restaurantNumber, ACTIVE)).thenReturn(List.of());
+
+		final var result = assignmentService().getActiveAssignments(MUNICIPALITY_ID, RESTAURANT_NUMBER);
+
+		assertThat(result).isNotNull().isEmpty();
+	}
+
+	@Test
+	void getActiveAssignmentsWithUnknownRestaurantNumber() {
+		when(restaurantNumberRepository.findByRestaurantNumberAndMunicipalityId(RESTAURANT_NUMBER, MUNICIPALITY_ID)).thenReturn(Optional.empty());
+
+		final var assignmentService = assignmentService();
+
+		assertThatThrownBy(() -> assignmentService.getActiveAssignments(MUNICIPALITY_ID, RESTAURANT_NUMBER))
+			.isInstanceOf(Problem.class)
+			.hasMessageContaining("Restaurant number " + RESTAURANT_NUMBER + " not found")
+			.extracting("status").isEqualTo(NOT_FOUND);
+		verify(restaurantNumberRepository).findByRestaurantNumberAndMunicipalityId(RESTAURANT_NUMBER, MUNICIPALITY_ID);
+		verify(restaurantNumberAssignmentRepository, never()).findAllByRestaurantNumberAndStatusOrderByValidFromAscCreatedAsc(any(), any());
 	}
 }

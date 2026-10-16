@@ -14,6 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.OK;
 
 @ExtendWith(MockitoExtension.class)
 class RestaurantNumberResourceTest {
@@ -65,6 +66,19 @@ class RestaurantNumberResourceTest {
 		assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
 		assertThat(response.getBody()).isEqualTo(expected);
 		verify(assignmentService).getLatestAssignment(MUNICIPALITY_ID, RESTAURANT_NUMBER);
+	}
+
+	@Test
+	void getActiveAssignments() {
+		final var expected = List.of(Assignment.create().withId("assignment-1"), Assignment.create().withId("assignment-2"));
+		when(assignmentService.getActiveAssignments(MUNICIPALITY_ID, RESTAURANT_NUMBER)).thenReturn(expected);
+
+		final var restaurantNumberResource = new RestaurantNumberResource(restaurantNumberService, assignmentService);
+		final var response = restaurantNumberResource.getActiveAssignments(MUNICIPALITY_ID, RESTAURANT_NUMBER);
+
+		assertThat(response.getStatusCode()).isEqualTo(OK);
+		assertThat(response.getBody()).isEqualTo(expected);
+		verify(assignmentService).getActiveAssignments(MUNICIPALITY_ID, RESTAURANT_NUMBER);
 	}
 
 	@Test

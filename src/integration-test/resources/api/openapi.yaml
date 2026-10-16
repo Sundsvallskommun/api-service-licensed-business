@@ -446,6 +446,61 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /{municipalityId}/restaurant-numbers/{restaurantNumber}/assignments:
+    get:
+      tags:
+      - Restaurant Number Resources
+      summary: "Get the active assignments for a restaurant number, including their\
+        \ address and license holder, oldest validFrom first"
+      operationId: getActiveAssignments
+      parameters:
+      - name: municipalityId
+        in: path
+        description: Municipality ID
+        required: true
+        schema:
+          type: string
+        example: 2281
+      - name: restaurantNumber
+        in: path
+        description: Restaurant number
+        required: true
+        schema:
+          type: string
+        example: 22813670
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Assignment"
+        "404":
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "400":
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "500":
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "502":
+          description: Bad Gateway
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /{municipalityId}/restaurant-numbers/{restaurantNumber}/assignment:
     get:
       tags:
