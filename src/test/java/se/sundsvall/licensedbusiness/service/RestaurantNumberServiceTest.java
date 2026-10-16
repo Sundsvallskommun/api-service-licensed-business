@@ -246,6 +246,44 @@ class RestaurantNumberServiceTest {
 	}
 
 	@Test
+	void getAddressRestaurantNumbersShowsTheRunningAssignmentWhenAnotherActiveOneStartsTomorrow() {
+		final var today = LocalDate.now();
+		final var number = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("22810001").withMunicipalityId(MUNICIPALITY_ID);
+
+		when(addressRepository.existsByIdAndMunicipalityId(ADDRESS_ID, MUNICIPALITY_ID)).thenReturn(true);
+		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber_Address_Id(ADDRESS_ID)).thenReturn(List.of(
+			assignment(number, "Krogen", today.minusYears(2), null, ACTIVE, OffsetDateTime.of(2024, 1, 1, 10, 0, 0, 0, UTC)),
+			assignment(number, "Pizzerian", today.plusDays(1), null, ACTIVE, OffsetDateTime.of(2024, 6, 1, 10, 0, 0, 0, UTC))));
+		when(restaurantNumberRepository.findAllByMunicipalityIdAndAddress_IdOrderByRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID)).thenReturn(List.of(number));
+
+		final var restaurantNumberService = new RestaurantNumberService(restaurantNumberRepository, restaurantNumberAssignmentRepository, addressRepository, restaurantNumberMapper);
+		final var result = restaurantNumberService.getAddressRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID);
+
+		assertThat(result)
+			.extracting(AddressRestaurantNumber::getNumber, AddressRestaurantNumber::getStatus, AddressRestaurantNumber::getPremisesName, AddressRestaurantNumber::getValidFrom, AddressRestaurantNumber::getValidTo)
+			.containsExactly(tuple("22810001", "ACTIVE", "Krogen", today.minusYears(2), null));
+	}
+
+	@Test
+	void getAddressRestaurantNumbersShowsTheNewAssignmentFromTheDayItStartsWhileTheOldOneIsStillActive() {
+		final var today = LocalDate.now();
+		final var number = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("22810001").withMunicipalityId(MUNICIPALITY_ID);
+
+		when(addressRepository.existsByIdAndMunicipalityId(ADDRESS_ID, MUNICIPALITY_ID)).thenReturn(true);
+		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber_Address_Id(ADDRESS_ID)).thenReturn(List.of(
+			assignment(number, "Krogen", today.minusYears(2), null, ACTIVE, OffsetDateTime.of(2024, 1, 1, 10, 0, 0, 0, UTC)),
+			assignment(number, "Pizzerian", today, null, ACTIVE, OffsetDateTime.of(2024, 6, 1, 10, 0, 0, 0, UTC))));
+		when(restaurantNumberRepository.findAllByMunicipalityIdAndAddress_IdOrderByRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID)).thenReturn(List.of(number));
+
+		final var restaurantNumberService = new RestaurantNumberService(restaurantNumberRepository, restaurantNumberAssignmentRepository, addressRepository, restaurantNumberMapper);
+		final var result = restaurantNumberService.getAddressRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID);
+
+		assertThat(result)
+			.extracting(AddressRestaurantNumber::getNumber, AddressRestaurantNumber::getStatus, AddressRestaurantNumber::getPremisesName, AddressRestaurantNumber::getValidFrom, AddressRestaurantNumber::getValidTo)
+			.containsExactly(tuple("22810001", "ACTIVE", "Pizzerian", today, null));
+	}
+
+	@Test
 	void getAddressRestaurantNumbersWithUnknownAddress() {
 		when(addressRepository.existsByIdAndMunicipalityId(ADDRESS_ID, MUNICIPALITY_ID)).thenReturn(false);
 
