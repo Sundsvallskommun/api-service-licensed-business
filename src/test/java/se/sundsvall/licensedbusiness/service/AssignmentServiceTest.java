@@ -28,6 +28,7 @@ import se.sundsvall.licensedbusiness.service.mapper.RestaurantNumberMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -161,7 +162,6 @@ class AssignmentServiceTest {
 		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(addressEntity()));
 		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.of(licenseHolder));
-		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(List.of());
 		when(restaurantNumberAssignmentRepository.save(any())).thenAnswer(invocation -> ((RestaurantNumberAssignmentEntity) invocation.getArgument(0)).withId(ASSIGNMENT_ID));
 
 		final var result = assignmentService().createAssignment(MUNICIPALITY_ID, createRequest());
@@ -184,7 +184,6 @@ class AssignmentServiceTest {
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(addressEntity()));
 		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.empty());
 		when(licenseHolderRepository.save(any())).thenAnswer(invocation -> ((LicenseHolderEntity) invocation.getArgument(0)).withId("holder-new"));
-		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(List.of());
 		when(restaurantNumberAssignmentRepository.save(any())).thenAnswer(invocation -> ((RestaurantNumberAssignmentEntity) invocation.getArgument(0)).withId(ASSIGNMENT_ID));
 
 		assignmentService().createAssignment(MUNICIPALITY_ID, createRequest());
@@ -195,38 +194,118 @@ class AssignmentServiceTest {
 		assertThat(captor.getValue().getName()).isEqualTo("Restaurang i Sundsvall AB");
 	}
 
-	@Test
-	void createAssignmentEndsTheCurrentAssignmentTheDayBefore() {
+	private RestaurantNumberAssignmentEntity createAlongside(final RestaurantNumberAssignmentEntity existing, final AssignmentCreateRequest request) {
 		final var restaurantNumber = restaurantNumberEntity();
-		final var current = RestaurantNumberAssignmentEntity.create().withId("assignment-old").withValidFrom(LocalDate.of(2020, 1, 1)).withStatus(ACTIVE);
+		existing.setRestaurantNumber(restaurantNumber);
 		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(addressEntity()));
-		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.of(LicenseHolderEntity.create().withId("holder-1")));
-		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(List.of(current));
+		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.of(LicenseHolderEntity.create().withId("holder-1").withOrgNumber(ORG_NUMBER)));
+		lenient().when(restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatus(restaurantNumber, ACTIVE)).thenReturn(List.of(existing));
 		when(restaurantNumberAssignmentRepository.save(any())).thenAnswer(invocation -> ((RestaurantNumberAssignmentEntity) invocation.getArgument(0)).withId(ASSIGNMENT_ID));
 
-		assignmentService().createAssignment(MUNICIPALITY_ID, createRequest());
+		final var result = assignmentService().createAssignment(MUNICIPALITY_ID, request);
 
-		assertThat(current.getValidTo()).isEqualTo(LocalDate.of(2025, 12, 31));
-		assertThat(current.getStatus()).isEqualTo(ENDED);
+		assertThat(result).isEqualTo(ASSIGNMENT_ID);
+		final var captor = ArgumentCaptor.forClass(RestaurantNumberAssignmentEntity.class);
+		verify(restaurantNumberAssignmentRepository, times(1)).save(captor.capture());
+		verify(restaurantNumberAssignmentRepository, never()).saveAll(any());
+		verify(restaurantNumberAssignmentRepository, never()).saveAndFlush(any());
+		return captor.getValue();
 	}
 
 	@Test
-	void createAssignmentRejectsAnAssignmentStartingOnOrAfterTheNewOne() {
-		final var restaurantNumber = restaurantNumberEntity();
-		final var current = RestaurantNumberAssignmentEntity.create().withId("assignment-old").withValidFrom(LocalDate.of(2026, 1, 1)).withStatus(ACTIVE);
-		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
-		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(addressEntity()));
-		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.of(LicenseHolderEntity.create().withId("holder-1")));
-		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(List.of(current));
+	void createAssignmentStartingLaterLeavesTheRunningAssignmentUnchanged() {
+		final var running = RestaurantNumberAssignmentEntity.create().withId("assignment-old").withValidFrom(LocalDate.of(2020, 1, 1)).withStatus(ACTIVE);
 
-		final var assignmentService = assignmentService();
-		final var request = createRequest();
+		final var saved = createAlongside(running, createRequest().withValidFrom(LocalDate.of(2026, 3, 1)));
 
-		assertThatThrownBy(() -> assignmentService.createAssignment(MUNICIPALITY_ID, request))
-			.isInstanceOf(Problem.class)
-			.hasMessageContaining("overlaps assignment assignment-old, which runs from 2026-01-01")
-			.extracting("status").isEqualTo(BAD_REQUEST);
+		assertThat(saved.getValidFrom()).isEqualTo(LocalDate.of(2026, 3, 1));
+		assertThat(saved.getValidTo()).isNull();
+		assertThat(saved.getStatus()).isEqualTo(ACTIVE);
+		assertThat(running.getValidTo()).isNull();
+		assertThat(running.getStatus()).isEqualTo(ACTIVE);
+	}
+
+	@Test
+	void createAssignmentWithTheSameValidFromAsARunningAssignmentIsSaved() {
+		final var running = RestaurantNumberAssignmentEntity.create().withId("assignment-old").withValidFrom(LocalDate.of(2026, 1, 1)).withStatus(ACTIVE);
+
+		final var saved = createAlongside(running, createRequest().withValidFrom(LocalDate.of(2026, 1, 1)));
+
+		assertThat(saved.getValidFrom()).isEqualTo(LocalDate.of(2026, 1, 1));
+		assertThat(saved.getStatus()).isEqualTo(ACTIVE);
+		assertThat(running.getValidTo()).isNull();
+		assertThat(running.getStatus()).isEqualTo(ACTIVE);
+	}
+
+	@Test
+	void createAssignmentStartingBeforeARunningAssignmentIsSaved() {
+		final var running = RestaurantNumberAssignmentEntity.create().withId("assignment-old").withValidFrom(LocalDate.of(2026, 6, 1)).withStatus(ACTIVE);
+
+		final var saved = createAlongside(running, createRequest().withValidFrom(LocalDate.of(2026, 1, 1)));
+
+		assertThat(saved.getValidFrom()).isEqualTo(LocalDate.of(2026, 1, 1));
+		assertThat(saved.getStatus()).isEqualTo(ACTIVE);
+		assertThat(running.getValidFrom()).isEqualTo(LocalDate.of(2026, 6, 1));
+		assertThat(running.getValidTo()).isNull();
+		assertThat(running.getStatus()).isEqualTo(ACTIVE);
+	}
+
+	@Test
+	void createAssignmentWithAPastPeriodOverlappingARunningAssignmentIsSaved() {
+		final var running = RestaurantNumberAssignmentEntity.create().withId("assignment-running").withValidFrom(LocalDate.of(2019, 1, 1)).withStatus(ACTIVE);
+
+		final var saved = createAlongside(running, createRequest().withValidFrom(LocalDate.of(2020, 1, 1)).withValidTo(LocalDate.of(2020, 12, 31)));
+
+		assertThat(saved.getValidTo()).isEqualTo(LocalDate.of(2020, 12, 31));
+		assertThat(saved.getStatus()).isEqualTo(ENDED);
+		assertThat(running.getValidTo()).isNull();
+		assertThat(running.getStatus()).isEqualTo(ACTIVE);
+	}
+
+	@Test
+	void createAssignmentOverlappingARunningAssignmentOfTheSameHolderIsSaved() {
+		final var holder = LicenseHolderEntity.create().withId("holder-1").withOrgNumber(ORG_NUMBER);
+		final var running = RestaurantNumberAssignmentEntity.create()
+			.withId("assignment-old")
+			.withLicenseHolder(holder)
+			.withValidFrom(LocalDate.of(2020, 1, 1))
+			.withStatus(ACTIVE);
+
+		final var saved = createAlongside(running, createRequest().withValidFrom(LocalDate.of(2026, 1, 1)));
+
+		assertThat(saved.getLicenseHolder().getOrgNumber()).isEqualTo(ORG_NUMBER);
+		assertThat(saved.getStatus()).isEqualTo(ACTIVE);
+		assertThat(running.getValidTo()).isNull();
+		assertThat(running.getStatus()).isEqualTo(ACTIVE);
+	}
+
+	@Test
+	void createAssignmentStartingInTheFutureLeavesTheRunningAssignmentUnchanged() {
+		final var running = RestaurantNumberAssignmentEntity.create().withId("assignment-old").withValidFrom(LocalDate.of(2020, 1, 1)).withStatus(ACTIVE);
+		final var futureStart = LocalDate.now().plusYears(1);
+
+		final var saved = createAlongside(running, createRequest().withValidFrom(futureStart));
+
+		assertThat(saved.getValidFrom()).isEqualTo(futureStart);
+		assertThat(running.getValidTo()).isNull();
+		assertThat(running.getStatus()).isEqualTo(ACTIVE);
+	}
+
+	@Test
+	void createAssignmentOverlappingAnEndedAssignmentIsSaved() {
+		final var historic = RestaurantNumberAssignmentEntity.create()
+			.withId("assignment-historic")
+			.withValidFrom(LocalDate.of(2005, 1, 1))
+			.withValidTo(LocalDate.of(2005, 12, 31))
+			.withStatus(ENDED);
+
+		final var saved = createAlongside(historic, createRequest().withValidFrom(LocalDate.of(2005, 6, 1)).withValidTo(LocalDate.of(2005, 8, 31)));
+
+		assertThat(saved.getValidFrom()).isEqualTo(LocalDate.of(2005, 6, 1));
+		assertThat(saved.getStatus()).isEqualTo(ENDED);
+		assertThat(historic.getValidTo()).isEqualTo(LocalDate.of(2005, 12, 31));
+		assertThat(historic.getStatus()).isEqualTo(ENDED);
 	}
 
 	@Test
@@ -235,7 +314,6 @@ class AssignmentServiceTest {
 		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(addressEntity()));
 		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.of(LicenseHolderEntity.create().withId("holder-1")));
-		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(List.of());
 		when(restaurantNumberAssignmentRepository.save(any())).thenAnswer(invocation -> ((RestaurantNumberAssignmentEntity) invocation.getArgument(0)).withId(ASSIGNMENT_ID));
 
 		final var request = createRequest().withValidFrom(LocalDate.of(2020, 1, 1)).withValidTo(LocalDate.of(2020, 12, 31));
@@ -428,80 +506,12 @@ class AssignmentServiceTest {
 		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(addressEntity()));
 		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.of(LicenseHolderEntity.create().withId("holder-1")));
-		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(List.of(current));
 		when(restaurantNumberAssignmentRepository.save(any())).thenAnswer(invocation -> ((RestaurantNumberAssignmentEntity) invocation.getArgument(0)).withId(ASSIGNMENT_ID));
 
 		assignmentService().createAssignment(MUNICIPALITY_ID, createRequest().withValidFrom(LocalDate.of(2026, 9, 1)));
 
 		assertThat(current.getValidTo()).isEqualTo(LocalDate.of(2026, 3, 31));
 		verify(restaurantNumberAssignmentRepository, times(1)).save(any());
-	}
-
-	@Test
-	void createAssignmentKeepsAShortenedAssignmentActiveWhileItStillHasDaysLeft() {
-		final var restaurantNumber = restaurantNumberEntity();
-		final var current = RestaurantNumberAssignmentEntity.create()
-			.withId("assignment-old")
-			.withValidFrom(LocalDate.of(2020, 1, 1))
-			.withStatus(ACTIVE);
-		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
-		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(addressEntity()));
-		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.of(LicenseHolderEntity.create().withId("holder-1")));
-		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(List.of(current));
-		when(restaurantNumberAssignmentRepository.save(any())).thenAnswer(invocation -> ((RestaurantNumberAssignmentEntity) invocation.getArgument(0)).withId(ASSIGNMENT_ID));
-
-		final var futureStart = LocalDate.now().plusYears(1);
-		assignmentService().createAssignment(MUNICIPALITY_ID, createRequest().withValidFrom(futureStart));
-
-		assertThat(current.getValidTo()).isEqualTo(futureStart.minusDays(1));
-		assertThat(current.getStatus()).isEqualTo(ACTIVE);
-	}
-
-	@Test
-	void createAssignmentRejectsABackdatedPeriodInsteadOfEndingTheRunningAssignment() {
-		final var restaurantNumber = restaurantNumberEntity();
-		final var running = RestaurantNumberAssignmentEntity.create()
-			.withId("assignment-running")
-			.withValidFrom(LocalDate.of(2019, 1, 1))
-			.withStatus(ACTIVE);
-		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
-		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(addressEntity()));
-		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.of(LicenseHolderEntity.create().withId("holder-1")));
-		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(List.of(running));
-
-		final var assignmentService = assignmentService();
-		final var request = createRequest().withValidFrom(LocalDate.of(2020, 1, 1)).withValidTo(LocalDate.of(2020, 12, 31));
-
-		assertThatThrownBy(() -> assignmentService.createAssignment(MUNICIPALITY_ID, request))
-			.isInstanceOf(Problem.class)
-			.hasMessageContaining("overlaps assignment assignment-running")
-			.extracting("status").isEqualTo(BAD_REQUEST);
-
-		assertThat(running.getValidTo()).isNull();
-		assertThat(running.getStatus()).isEqualTo(ACTIVE);
-		verify(restaurantNumberAssignmentRepository, never()).save(any());
-	}
-
-	@Test
-	void createAssignmentRejectsAPeriodThatOverlapsAnEndedAssignment() {
-		final var restaurantNumber = restaurantNumberEntity();
-		final var historic = RestaurantNumberAssignmentEntity.create()
-			.withId("assignment-historic")
-			.withValidFrom(LocalDate.of(2005, 1, 1))
-			.withValidTo(LocalDate.of(2005, 12, 31))
-			.withStatus(ENDED);
-		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
-		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(addressEntity()));
-		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.of(LicenseHolderEntity.create().withId("holder-1")));
-		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(List.of(historic));
-
-		final var assignmentService = assignmentService();
-		final var request = createRequest().withValidFrom(LocalDate.of(2005, 6, 1)).withValidTo(LocalDate.of(2005, 8, 31));
-
-		assertThatThrownBy(() -> assignmentService.createAssignment(MUNICIPALITY_ID, request))
-			.isInstanceOf(Problem.class)
-			.hasMessageContaining("overlaps assignment assignment-historic")
-			.extracting("status").isEqualTo(BAD_REQUEST);
 	}
 
 	@Test
@@ -515,7 +525,6 @@ class AssignmentServiceTest {
 		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(addressEntity()));
 		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.of(LicenseHolderEntity.create().withId("holder-1")));
-		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(List.of(historic));
 		when(restaurantNumberAssignmentRepository.save(any())).thenAnswer(invocation -> ((RestaurantNumberAssignmentEntity) invocation.getArgument(0)).withId(ASSIGNMENT_ID));
 
 		final var request = createRequest().withValidFrom(LocalDate.of(2006, 1, 1)).withValidTo(LocalDate.of(2006, 12, 31));
@@ -532,7 +541,6 @@ class AssignmentServiceTest {
 		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(addressEntity()));
 		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.of(licenseHolder));
-		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(List.of());
 		when(restaurantNumberAssignmentRepository.save(any())).thenAnswer(invocation -> ((RestaurantNumberAssignmentEntity) invocation.getArgument(0)).withId(ASSIGNMENT_ID));
 
 		assignmentService().createAssignment(MUNICIPALITY_ID, createRequest().withOrgNumber("5566124144"));

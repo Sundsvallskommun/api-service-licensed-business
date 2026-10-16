@@ -83,8 +83,6 @@ public class AssignmentService {
 				.withOrgNumber(orgNumber)
 				.withName(request.getHolderName())));
 
-		endOverlappingAssignmentsOrReject(restaurantNumber, request.getValidFrom(), request.getValidTo());
-
 		return restaurantNumberAssignmentRepository.save(RestaurantNumberAssignmentEntity.create()
 			.withRestaurantNumber(restaurantNumber)
 			.withAddress(address)
@@ -119,29 +117,6 @@ public class AssignmentService {
 		} catch (final OptimisticLockingFailureException e) {
 			throw Problem.valueOf(CONFLICT, "Assignment %s was updated by someone else, please reload it and try again".formatted(sanitize(assignmentId)));
 		}
-	}
-
-	private void endOverlappingAssignmentsOrReject(final RestaurantNumberEntity restaurantNumber, final LocalDate newValidFrom, final LocalDate newValidTo) {
-		final var newAssignmentTakesOver = resolveStatus(newValidTo) == ACTIVE;
-		final var lastValidDay = newValidFrom.minusDays(1);
-
-		restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber).stream()
-			.filter(current -> overlaps(current, newValidFrom, newValidTo))
-			.forEach(current -> {
-				if (!newAssignmentTakesOver || !current.getValidFrom().isBefore(newValidFrom)) {
-					throw Problem.valueOf(BAD_REQUEST, "The period %s to %s overlaps assignment %s, which runs from %s to %s".formatted(
-						newValidFrom, newValidTo, sanitize(current.getId()), current.getValidFrom(), current.getValidTo()));
-				}
-				current.setValidTo(lastValidDay);
-				current.setStatus(resolveStatus(lastValidDay));
-			});
-	}
-
-	private static boolean overlaps(final RestaurantNumberAssignmentEntity assignment, final LocalDate from, final LocalDate to) {
-		final var startsBeforeTheNewPeriodEnds = (to == null) || !assignment.getValidFrom().isAfter(to);
-		final var endsAfterTheNewPeriodStarts = (assignment.getValidTo() == null) || !assignment.getValidTo().isBefore(from);
-
-		return startsBeforeTheNewPeriodEnds && endsAfterTheNewPeriodStarts;
 	}
 
 	private void validateNoOtherActiveAssignment(final RestaurantNumberAssignmentEntity assignment) {

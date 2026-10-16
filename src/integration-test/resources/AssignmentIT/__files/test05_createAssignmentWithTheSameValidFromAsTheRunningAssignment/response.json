@@ -1,5 +1,5 @@
 {
-	"id": "it-assignment-1",
+	"id": "${json-unit.any-string}",
 	"restaurantNumber": {
 		"id": "it-number-1",
 		"number": "22810001",
@@ -16,15 +16,14 @@
 		"created": "${json-unit.any-string}"
 	},
 	"licenseHolder": {
-		"id": "it-holder-1",
-		"orgNumber": "556600-1122",
-		"name": "Testrestaurang AB",
+		"id": "it-holder-2",
+		"orgNumber": "556600-3344",
+		"name": "Provkrogen HB",
 		"created": "${json-unit.any-string}"
 	},
-	"holderName": "Testrestaurang AB",
-	"premisesName": "Provkrogen",
+	"holderName": "Provkrogen HB",
+	"premisesName": "Samtidiga krogen",
 	"validFrom": "2020-01-01",
-	"validTo": "2026-02-28",
-	"status": "ENDED",
+	"status": "ACTIVE",
 	"created": "${json-unit.any-string}"
 }
