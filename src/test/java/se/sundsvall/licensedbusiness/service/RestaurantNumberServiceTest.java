@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -262,6 +263,10 @@ class RestaurantNumberServiceTest {
 		assertThat(result)
 			.extracting(AddressRestaurantNumber::getNumber, AddressRestaurantNumber::getStatus, AddressRestaurantNumber::getPremisesName, AddressRestaurantNumber::getValidFrom, AddressRestaurantNumber::getValidTo)
 			.containsExactly(tuple("22810001", "ACTIVE", "Krogen", today.minusYears(2), null));
+		verify(addressRepository).existsByIdAndMunicipalityId(ADDRESS_ID, MUNICIPALITY_ID);
+		verify(restaurantNumberAssignmentRepository).findAllByRestaurantNumber_Address_Id(ADDRESS_ID);
+		verify(restaurantNumberRepository).findAllByMunicipalityIdAndAddress_IdOrderByRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID);
+		verifyNoMoreInteractions(addressRepository, restaurantNumberAssignmentRepository, restaurantNumberRepository);
 	}
 
 	@Test
@@ -281,6 +286,10 @@ class RestaurantNumberServiceTest {
 		assertThat(result)
 			.extracting(AddressRestaurantNumber::getNumber, AddressRestaurantNumber::getStatus, AddressRestaurantNumber::getPremisesName, AddressRestaurantNumber::getValidFrom, AddressRestaurantNumber::getValidTo)
 			.containsExactly(tuple("22810001", "ACTIVE", "Pizzerian", today, null));
+		verify(addressRepository).existsByIdAndMunicipalityId(ADDRESS_ID, MUNICIPALITY_ID);
+		verify(restaurantNumberAssignmentRepository).findAllByRestaurantNumber_Address_Id(ADDRESS_ID);
+		verify(restaurantNumberRepository).findAllByMunicipalityIdAndAddress_IdOrderByRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID);
+		verifyNoMoreInteractions(addressRepository, restaurantNumberAssignmentRepository, restaurantNumberRepository);
 	}
 
 	@Test

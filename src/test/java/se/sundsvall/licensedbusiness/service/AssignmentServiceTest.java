@@ -29,7 +29,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -496,41 +495,33 @@ class AssignmentServiceTest {
 
 	@Test
 	void createAssignmentLeavesAnAssignmentThatAlreadyEndsEarlierAlone() {
-		final var restaurantNumber = restaurantNumberEntity();
 		final var current = RestaurantNumberAssignmentEntity.create()
 			.withId("assignment-old")
 			.withValidFrom(LocalDate.of(2026, 1, 1))
 			.withValidTo(LocalDate.of(2026, 3, 31))
 			.withStatus(ACTIVE);
-		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
-		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(addressEntity()));
-		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.of(LicenseHolderEntity.create().withId("holder-1")));
-		when(restaurantNumberAssignmentRepository.save(any())).thenAnswer(invocation -> ((RestaurantNumberAssignmentEntity) invocation.getArgument(0)).withId(ASSIGNMENT_ID));
 
-		assignmentService().createAssignment(MUNICIPALITY_ID, createRequest().withValidFrom(LocalDate.of(2026, 9, 1)));
+		final var saved = createAlongside(current, createRequest().withValidFrom(LocalDate.of(2026, 9, 1)));
 
+		assertThat(saved.getValidFrom()).isEqualTo(LocalDate.of(2026, 9, 1));
 		assertThat(current.getValidTo()).isEqualTo(LocalDate.of(2026, 3, 31));
-		verify(restaurantNumberAssignmentRepository, times(1)).save(any());
+		assertThat(current.getStatus()).isEqualTo(ACTIVE);
 	}
 
 	@Test
 	void createAssignmentAcceptsAHistoricPeriodThatFitsBetweenExistingOnes() {
-		final var restaurantNumber = restaurantNumberEntity();
 		final var historic = RestaurantNumberAssignmentEntity.create()
 			.withId("assignment-historic")
 			.withValidFrom(LocalDate.of(2005, 1, 1))
 			.withValidTo(LocalDate.of(2005, 12, 31))
 			.withStatus(ENDED);
-		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
-		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(addressEntity()));
-		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.of(LicenseHolderEntity.create().withId("holder-1")));
-		when(restaurantNumberAssignmentRepository.save(any())).thenAnswer(invocation -> ((RestaurantNumberAssignmentEntity) invocation.getArgument(0)).withId(ASSIGNMENT_ID));
 
-		final var request = createRequest().withValidFrom(LocalDate.of(2006, 1, 1)).withValidTo(LocalDate.of(2006, 12, 31));
-		assignmentService().createAssignment(MUNICIPALITY_ID, request);
+		final var saved = createAlongside(historic, createRequest().withValidFrom(LocalDate.of(2006, 1, 1)).withValidTo(LocalDate.of(2006, 12, 31)));
 
+		assertThat(saved.getValidFrom()).isEqualTo(LocalDate.of(2006, 1, 1));
+		assertThat(saved.getValidTo()).isEqualTo(LocalDate.of(2006, 12, 31));
 		assertThat(historic.getValidTo()).isEqualTo(LocalDate.of(2005, 12, 31));
-		verify(restaurantNumberAssignmentRepository, times(1)).save(any());
+		assertThat(historic.getStatus()).isEqualTo(ENDED);
 	}
 
 	@Test
