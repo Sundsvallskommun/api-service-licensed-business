@@ -56,10 +56,18 @@ class AssignmentResource {
 		return ResponseEntity.ok(assignmentService.getAssignment(municipalityId, assignmentId));
 	}
 
-	@Operation(summary = "Create an assignment, ending any active assignment on the same restaurant number", responses = {
-		@ApiResponse(responseCode = "201", description = "Created", headers = @Header(name = LOCATION, schema = @Schema(type = "string"))),
-		@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))
-	})
+	@Operation(summary = "Create an assignment",
+		description = "The period must not overlap any other assignment on the restaurant number, ended ones included. validFrom and validTo are both inclusive, "
+			+ "so the previous assignment must have a validTo before a new one can be created, and the new one can start the day after at the earliest. "
+			+ "Existing assignments are never changed.",
+		responses = {
+			@ApiResponse(responseCode = "201", description = "Created", headers = @Header(name = LOCATION, schema = @Schema(type = "string"))),
+			@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class))),
+			@ApiResponse(responseCode = "409",
+				description = "Conflict, the period overlaps another assignment on the restaurant number",
+				content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE,
+					schema = @Schema(implementation = Problem.class)))
+		})
 	@PostMapping
 	ResponseEntity<Void> createAssignment(
 		@Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @PathVariable @ValidMunicipalityId final String municipalityId,
@@ -71,10 +79,15 @@ class AssignmentResource {
 			.build();
 	}
 
-	@Operation(summary = "Update an assignment", responses = {
-		@ApiResponse(responseCode = "200", description = "OK", useReturnTypeSchema = true),
-		@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))
-	})
+	@Operation(summary = "Update an assignment",
+		description = "A new validTo must not make the period overlap any other assignment on the restaurant number, ended ones included.",
+		responses = {
+			@ApiResponse(responseCode = "200", description = "OK", useReturnTypeSchema = true),
+			@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class))),
+			@ApiResponse(responseCode = "409",
+				description = "Conflict, the new validTo makes the period overlap another assignment on the restaurant number",
+				content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))
+		})
 	@PatchMapping("/{assignmentId}")
 	ResponseEntity<Assignment> updateAssignment(
 		@Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @PathVariable @ValidMunicipalityId final String municipalityId,

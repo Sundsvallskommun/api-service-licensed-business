@@ -1,0 +1,5 @@
+{
+	"title": "Conflict",
+	"status": 409,
+	"detail": "The period 2019-12-31 to null overlaps assignment it-assignment-2, which runs from 2019-01-01 to 2019-12-31"
+}

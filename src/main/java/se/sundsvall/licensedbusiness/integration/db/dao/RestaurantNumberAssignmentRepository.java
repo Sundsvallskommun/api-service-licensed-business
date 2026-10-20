@@ -25,7 +25,10 @@ public interface RestaurantNumberAssignmentRepository extends JpaRepository<Rest
 	})
 	Optional<RestaurantNumberAssignmentEntity> findByIdAndRestaurantNumber_MunicipalityId(String id, String municipalityId);
 
-	List<RestaurantNumberAssignmentEntity> findAllByRestaurantNumberAndStatus(RestaurantNumberEntity restaurantNumber, AssignmentStatus status);
+	@EntityGraph(attributePaths = {
+		"restaurantNumber", "address", "licenseHolder"
+	})
+	List<RestaurantNumberAssignmentEntity> findAllByRestaurantNumberAndStatusOrderByValidFromAscCreatedAsc(RestaurantNumberEntity restaurantNumber, AssignmentStatus status);
 
 	List<RestaurantNumberAssignmentEntity> findAllByRestaurantNumber(RestaurantNumberEntity restaurantNumber);
 

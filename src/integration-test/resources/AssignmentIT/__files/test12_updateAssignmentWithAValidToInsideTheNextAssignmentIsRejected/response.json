@@ -1,0 +1,5 @@
+{
+	"title": "Conflict",
+	"status": 409,
+	"detail": "${json-unit.regex}The period 2020-01-01 to 2099-06-30 overlaps assignment [^,]+, which runs from 2099-01-01 to null"
+}

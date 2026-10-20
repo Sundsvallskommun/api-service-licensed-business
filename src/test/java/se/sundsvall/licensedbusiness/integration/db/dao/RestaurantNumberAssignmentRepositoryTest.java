@@ -1,11 +1,18 @@
 package se.sundsvall.licensedbusiness.integration.db.dao;
 
+import jakarta.persistence.EntityManager;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+import se.sundsvall.licensedbusiness.integration.db.model.AddressEntity;
+import se.sundsvall.licensedbusiness.integration.db.model.LicenseHolderEntity;
+import se.sundsvall.licensedbusiness.integration.db.model.RestaurantNumberAssignmentEntity;
+import se.sundsvall.licensedbusiness.integration.db.model.RestaurantNumberEntity;
 import se.sundsvall.licensedbusiness.integration.db.model.enums.AssignmentStatus;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,6 +36,15 @@ class RestaurantNumberAssignmentRepositoryTest {
 
 	@Autowired
 	private RestaurantNumberRepository restaurantNumberRepository;
+
+	@Autowired
+	private AddressRepository addressRepository;
+
+	@Autowired
+	private LicenseHolderRepository licenseHolderRepository;
+
+	@Autowired
+	private EntityManager entityManager;
 
 	@Test
 	void findFirstByRestaurantNumberReturnsTheAssignmentWithTheHighestValidFrom() {
@@ -93,35 +109,19 @@ class RestaurantNumberAssignmentRepositoryTest {
 	}
 
 	@Test
-	void findAllByRestaurantNumberAndStatus() {
+	void findAllByRestaurantNumberAndStatusOrderByValidFromAscCreatedAsc() {
 		final var restaurantNumber = restaurantNumberRepository.findById("rn-2").orElseThrow();
 
-		final var active = restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatus(restaurantNumber, AssignmentStatus.ACTIVE);
+		final var active = restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatusOrderByValidFromAscCreatedAsc(restaurantNumber, AssignmentStatus.ACTIVE);
 
 		assertThat(active).extracting("id").containsExactly("assignment-4");
-	}
-
-	@Test
-	void findAllByRestaurantNumberReturnsEndedAssignmentsToo() {
-		final var restaurantNumber = restaurantNumberRepository.findById("rn-1").orElseThrow();
-
-		final var all = restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber);
-
-		assertThat(all).extracting("id").containsExactlyInAnyOrder("assignment-1", "assignment-2");
-	}
-
-	@Test
-	void findAllByRestaurantNumberWithoutAssignment() {
-		final var restaurantNumber = restaurantNumberRepository.findById("rn-5").orElseThrow();
-
-		assertThat(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).isEmpty();
 	}
 
 	@Test
 	void findAllByRestaurantNumberAndStatusWithNoActiveAssignment() {
 		final var restaurantNumber = restaurantNumberRepository.findById("rn-3").orElseThrow();
 
-		final var active = restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatus(restaurantNumber, AssignmentStatus.ACTIVE);
+		final var active = restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatusOrderByValidFromAscCreatedAsc(restaurantNumber, AssignmentStatus.ACTIVE);
 
 		assertThat(active).isEmpty();
 	}
@@ -131,6 +131,38 @@ class RestaurantNumberAssignmentRepositoryTest {
 		final var assignments = restaurantNumberAssignmentRepository.findAllByRestaurantNumber_Address_Id("address-6");
 
 		assertThat(assignments).extracting("id").containsExactlyInAnyOrder("assignment-5", "assignment-6", "assignment-7");
+	}
+
+	@Test
+	void findAllByRestaurantNumberAndStatusOrdersByValidFromThenCreatedAndSkipsOtherStatuses() {
+		final var restaurantNumber = restaurantNumberRepository.findById("rn-5").orElseThrow();
+		final var address = addressRepository.findById("address-1").orElseThrow();
+		final var licenseHolder = licenseHolderRepository.findById("holder-1").orElseThrow();
+		final var laterStartCreatedSecond = persist(restaurantNumber, address, licenseHolder, "2024-01-01", null, AssignmentStatus.ACTIVE, "2024-01-02T10:00:00Z");
+		final var earliestStart = persist(restaurantNumber, address, licenseHolder, "2023-01-01", "2023-12-31", AssignmentStatus.ACTIVE, "2024-01-03T10:00:00Z");
+		final var laterStartCreatedFirst = persist(restaurantNumber, address, licenseHolder, "2024-01-01", null, AssignmentStatus.ACTIVE, "2024-01-01T10:00:00Z");
+		persist(restaurantNumber, address, licenseHolder, "2022-01-01", "2022-12-31", AssignmentStatus.ENDED, "2022-01-01T10:00:00Z");
+		entityManager.clear();
+
+		final var active = restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatusOrderByValidFromAscCreatedAsc(restaurantNumber, AssignmentStatus.ACTIVE);
+
+		assertThat(active).extracting("id").containsExactly(earliestStart, laterStartCreatedFirst, laterStartCreatedSecond);
+		assertThat(active.getFirst().getAddress().getStreetAddress()).isEqualTo("Storgatan 1");
+		assertThat(active.getFirst().getLicenseHolder().getOrgNumber()).isEqualTo("5566112233");
+	}
+
+	private String persist(final RestaurantNumberEntity restaurantNumber, final AddressEntity address, final LicenseHolderEntity licenseHolder, final String validFrom, final String validTo,
+		final AssignmentStatus status, final String created) {
+		final var entity = restaurantNumberAssignmentRepository.saveAndFlush(RestaurantNumberAssignmentEntity.create()
+			.withRestaurantNumber(restaurantNumber)
+			.withAddress(address)
+			.withLicenseHolder(licenseHolder)
+			.withHolderName("Bolag A")
+			.withValidFrom(LocalDate.parse(validFrom))
+			.withValidTo(validTo == null ? null : LocalDate.parse(validTo))
+			.withStatus(status));
+		entity.setCreated(OffsetDateTime.parse(created));
+		return restaurantNumberAssignmentRepository.saveAndFlush(entity).getId();
 	}
 
 	@Test

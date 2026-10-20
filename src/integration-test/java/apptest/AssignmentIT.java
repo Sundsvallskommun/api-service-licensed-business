@@ -14,6 +14,7 @@ import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.PATCH;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.OK;
@@ -82,44 +83,76 @@ class AssignmentIT extends AbstractAppTest {
 			.sendRequestAndVerifyResponse();
 	}
 
-	// A new assignment starting after the running one ends the running one the day before.
 	@Test
-	void test04_createAssignmentTakesOverTheRestaurantNumber() {
+	void test04_createAssignmentOverlappingAnOpenEndedAssignmentIsRejected() {
 		setupCall()
 			.withServicePath(fromPath(PATH).build(MUNICIPALITY_ID).toString())
 			.withHttpMethod(POST)
 			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
 			.withRequest(REQUEST_FILE)
-			.withExpectedResponseStatus(CREATED)
-			.sendRequest();
+			.withExpectedResponseStatus(CONFLICT)
+			.withExpectedResponseHeader(CONTENT_TYPE, List.of(APPLICATION_PROBLEM_JSON_VALUE))
+			.withExpectedResponse(RESPONSE_FILE)
+			.sendRequestAndVerifyResponse();
 
 		setupCall()
 			.withServicePath(fromPath(PATH + "/{assignmentId}").build(MUNICIPALITY_ID, "it-assignment-1").toString())
 			.withHttpMethod(GET)
 			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
 			.withExpectedResponseStatus(OK)
-			.withExpectedResponse("response-ended-assignment.json")
-			.sendRequestAndVerifyResponse();
-
-		setupCall()
-			.withServicePath("/2281/restaurant-numbers/22810001/assignment")
-			.withHttpMethod(GET)
-			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
-			.withExpectedResponseStatus(OK)
-			.withExpectedResponse(RESPONSE_FILE)
+			.withExpectedResponse("response-running-assignment.json")
 			.sendRequestAndVerifyResponse();
 	}
 
 	@Test
-	void test05_createAssignmentWithOverlappingPeriod() {
+	void test05_createAssignmentStartingOnTheLastDayOfAnAssignmentIsRejected() {
 		setupCall()
 			.withServicePath(fromPath(PATH).build(MUNICIPALITY_ID).toString())
 			.withHttpMethod(POST)
 			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
 			.withRequest(REQUEST_FILE)
-			.withExpectedResponseStatus(BAD_REQUEST)
+			.withExpectedResponseStatus(CONFLICT)
 			.withExpectedResponseHeader(CONTENT_TYPE, List.of(APPLICATION_PROBLEM_JSON_VALUE))
 			.withExpectedResponse(RESPONSE_FILE)
+			.sendRequestAndVerifyResponse();
+
+		setupCall()
+			.withServicePath(fromPath(PATH + "/{assignmentId}").build(MUNICIPALITY_ID, "it-assignment-2").toString())
+			.withHttpMethod(GET)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withExpectedResponseStatus(OK)
+			.withExpectedResponse("response-ended-assignment.json")
+			.sendRequestAndVerifyResponse();
+	}
+
+	@Test
+	void test11_createAssignmentStartingTheDayAfterAnAssignmentEnds() {
+		final var location = setupCall()
+			.withServicePath(fromPath(PATH).build(MUNICIPALITY_ID).toString())
+			.withHttpMethod(POST)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withRequest(REQUEST_FILE)
+			.withExpectedResponseStatus(CREATED)
+			.sendRequestAndVerifyResponse()
+			.getResponseHeaders()
+			.getLocation();
+
+		assertThat(location).isNotNull();
+
+		setupCall()
+			.withServicePath(location.getPath())
+			.withHttpMethod(GET)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withExpectedResponseStatus(OK)
+			.withExpectedResponse(RESPONSE_FILE)
+			.sendRequestAndVerifyResponse();
+
+		setupCall()
+			.withServicePath(fromPath(PATH + "/{assignmentId}").build(MUNICIPALITY_ID, "it-assignment-2").toString())
+			.withHttpMethod(GET)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withExpectedResponseStatus(OK)
+			.withExpectedResponse("response-ended-assignment.json")
 			.sendRequestAndVerifyResponse();
 	}
 
@@ -158,6 +191,83 @@ class AssignmentIT extends AbstractAppTest {
 			.withRequest(REQUEST_FILE)
 			.withExpectedResponseStatus(OK)
 			.withExpectedResponse(RESPONSE_FILE)
+			.sendRequestAndVerifyResponse();
+	}
+
+	@Test
+	void test10_updateAssignmentWhileAnotherAssignmentOnTheNumberIsActive() {
+		setupCall()
+			.withServicePath(fromPath(PATH + "/{assignmentId}").build(MUNICIPALITY_ID, "it-assignment-1").toString())
+			.withHttpMethod(PATCH)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withRequest("request-end.json")
+			.withExpectedResponseStatus(OK)
+			.sendRequestAndVerifyResponse();
+
+		final var location = setupCall()
+			.withServicePath(fromPath(PATH).build(MUNICIPALITY_ID).toString())
+			.withHttpMethod(POST)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withRequest("request-create.json")
+			.withExpectedResponseStatus(CREATED)
+			.sendRequestAndVerifyResponse()
+			.getResponseHeaders()
+			.getLocation();
+
+		assertThat(location).isNotNull();
+
+		setupCall()
+			.withServicePath(fromPath(PATH + "/{assignmentId}").build(MUNICIPALITY_ID, "it-assignment-1").toString())
+			.withHttpMethod(PATCH)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withRequest(REQUEST_FILE)
+			.withExpectedResponseStatus(OK)
+			.withExpectedResponse(RESPONSE_FILE)
+			.sendRequestAndVerifyResponse();
+
+		setupCall()
+			.withServicePath(location.getPath())
+			.withHttpMethod(GET)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withExpectedResponseStatus(OK)
+			.withExpectedResponse("response-created.json")
+			.sendRequestAndVerifyResponse();
+	}
+
+	@Test
+	void test12_updateAssignmentWithAValidToInsideTheNextAssignmentIsRejected() {
+		setupCall()
+			.withServicePath(fromPath(PATH + "/{assignmentId}").build(MUNICIPALITY_ID, "it-assignment-1").toString())
+			.withHttpMethod(PATCH)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withRequest("request-end.json")
+			.withExpectedResponseStatus(OK)
+			.sendRequestAndVerifyResponse();
+
+		setupCall()
+			.withServicePath(fromPath(PATH).build(MUNICIPALITY_ID).toString())
+			.withHttpMethod(POST)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withRequest("request-create.json")
+			.withExpectedResponseStatus(CREATED)
+			.sendRequestAndVerifyResponse();
+
+		setupCall()
+			.withServicePath(fromPath(PATH + "/{assignmentId}").build(MUNICIPALITY_ID, "it-assignment-1").toString())
+			.withHttpMethod(PATCH)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withRequest(REQUEST_FILE)
+			.withExpectedResponseStatus(CONFLICT)
+			.withExpectedResponseHeader(CONTENT_TYPE, List.of(APPLICATION_PROBLEM_JSON_VALUE))
+			.withExpectedResponse(RESPONSE_FILE)
+			.sendRequestAndVerifyResponse();
+
+		setupCall()
+			.withServicePath(fromPath(PATH + "/{assignmentId}").build(MUNICIPALITY_ID, "it-assignment-1").toString())
+			.withHttpMethod(GET)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withExpectedResponseStatus(OK)
+			.withExpectedResponse("response-unchanged.json")
 			.sendRequestAndVerifyResponse();
 	}
 
