@@ -1,11 +1,17 @@
 package se.sundsvall.licensedbusiness.api;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import se.sundsvall.licensedbusiness.Application;
 import se.sundsvall.licensedbusiness.api.model.Address;
 import se.sundsvall.licensedbusiness.api.model.AddressLookupParameters;
 import se.sundsvall.licensedbusiness.api.model.AddressPagingParameters;
@@ -17,74 +23,118 @@ import se.sundsvall.licensedbusiness.service.RestaurantNumberService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest(classes = Application.class, webEnvironment = RANDOM_PORT)
+@ActiveProfiles("junit")
+@AutoConfigureWebTestClient
 class AddressResourceTest {
 
 	private static final String MUNICIPALITY_ID = "2281";
+	private static final String PATH = "/{municipalityId}/addresses";
+	private static final String ADDRESS_PATH = "/{municipalityId}/addresses/{addressId}";
+	private static final String RESTAURANT_NUMBERS_PATH = "/{municipalityId}/addresses/{addressId}/restaurant-numbers";
+	private static final String SEARCH_PATH = "/{municipalityId}/addresses/search";
+	private static final String LOOKUP_PATH = "/{municipalityId}/addresses/lookup";
 	private static final String ADDRESS_ID = "123e4567-e89b-12d3-a456-426614174000";
+	private static final OffsetDateTime CREATED = OffsetDateTime.of(2024, 1, 1, 10, 0, 0, 0, ZoneOffset.UTC);
 
-	@Mock
-	private AddressService addressService;
+	@Autowired
+	private WebTestClient webTestClient;
 
-	@Mock
-	private RestaurantNumberService restaurantNumberService;
+	@MockitoBean
+	private AddressService addressServiceMock;
+
+	@MockitoBean
+	private RestaurantNumberService restaurantNumberServiceMock;
 
 	@Test
 	void getAddresses() {
 		final var pagingParameters = new AddressPagingParameters();
-		final var expected = Addresses.create().withContent(List.of());
-		when(addressService.getAddresses(MUNICIPALITY_ID, pagingParameters)).thenReturn(expected);
+		pagingParameters.setPage(2);
+		pagingParameters.setLimit(10);
+		final var expected = Addresses.create().withContent(List.of(address()));
+		when(addressServiceMock.getAddresses(MUNICIPALITY_ID, pagingParameters)).thenReturn(expected);
 
-		final var addressResource = new AddressResource(addressService, restaurantNumberService);
-		final var response = addressResource.getAddresses(MUNICIPALITY_ID, pagingParameters);
+		final var response = webTestClient.get()
+			.uri(builder -> builder.path(PATH).queryParam("page", 2).queryParam("limit", 10).build(Map.of("municipalityId", MUNICIPALITY_ID)))
+			.exchange()
+			.expectStatus().isOk()
+			.expectHeader().contentType(APPLICATION_JSON)
+			.expectBody(Addresses.class)
+			.returnResult()
+			.getResponseBody();
 
-		assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
-		assertThat(response.getBody()).isEqualTo(expected);
-		verify(addressService).getAddresses(MUNICIPALITY_ID, pagingParameters);
+		assertThat(response).isEqualTo(expected);
+		verify(addressServiceMock).getAddresses(MUNICIPALITY_ID, pagingParameters);
+		verifyNoMoreInteractions(addressServiceMock);
+		verifyNoInteractions(restaurantNumberServiceMock);
 	}
 
 	@Test
 	void getAddress() {
-		final var expected = Address.create().withId(ADDRESS_ID).withStreetAddress("Storgatan 1").withPostalCode("852 30").withPostalArea("Sundsvall").withMunicipalityId(MUNICIPALITY_ID).withCreated(OffsetDateTime.now());
-		when(addressService.getAddress(MUNICIPALITY_ID, ADDRESS_ID)).thenReturn(expected);
+		final var expected = address();
+		when(addressServiceMock.getAddress(MUNICIPALITY_ID, ADDRESS_ID)).thenReturn(expected);
 
-		final var addressResource = new AddressResource(addressService, restaurantNumberService);
-		final var response = addressResource.getAddress(MUNICIPALITY_ID, ADDRESS_ID);
+		final var response = webTestClient.get()
+			.uri(builder -> builder.path(ADDRESS_PATH).build(Map.of("municipalityId", MUNICIPALITY_ID, "addressId", ADDRESS_ID)))
+			.exchange()
+			.expectStatus().isOk()
+			.expectHeader().contentType(APPLICATION_JSON)
+			.expectBody(Address.class)
+			.returnResult()
+			.getResponseBody();
 
-		assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
-		assertThat(response.getBody()).isEqualTo(expected);
-		verify(addressService).getAddress(MUNICIPALITY_ID, ADDRESS_ID);
+		assertThat(response).isEqualTo(expected);
+		verify(addressServiceMock).getAddress(MUNICIPALITY_ID, ADDRESS_ID);
+		verifyNoMoreInteractions(addressServiceMock);
+		verifyNoInteractions(restaurantNumberServiceMock);
 	}
 
 	@Test
 	void getAddressRestaurantNumbers() {
 		final var expected = List.of(AddressRestaurantNumber.create().withId("number-1").withNumber("22810001").withStatus("ACTIVE").withPremisesName("Harrys Pub"));
-		when(restaurantNumberService.getAddressRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID)).thenReturn(expected);
+		when(restaurantNumberServiceMock.getAddressRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID)).thenReturn(expected);
 
-		final var addressResource = new AddressResource(addressService, restaurantNumberService);
-		final var response = addressResource.getAddressRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID);
+		final var response = webTestClient.get()
+			.uri(builder -> builder.path(RESTAURANT_NUMBERS_PATH).build(Map.of("municipalityId", MUNICIPALITY_ID, "addressId", ADDRESS_ID)))
+			.exchange()
+			.expectStatus().isOk()
+			.expectHeader().contentType(APPLICATION_JSON)
+			.expectBodyList(AddressRestaurantNumber.class)
+			.returnResult()
+			.getResponseBody();
 
-		assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
-		assertThat(response.getBody()).isEqualTo(expected);
-		verify(restaurantNumberService).getAddressRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID);
+		assertThat(response).isEqualTo(expected);
+		verify(restaurantNumberServiceMock).getAddressRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID);
+		verifyNoMoreInteractions(restaurantNumberServiceMock);
+		verifyNoInteractions(addressServiceMock);
 	}
 
 	@Test
 	void searchAddresses() {
 		final var searchParameters = new AddressSearchParameters();
 		searchParameters.setQuery("Storgatan");
-		final var expected = Addresses.create().withContent(List.of());
-		when(addressService.searchAddresses(MUNICIPALITY_ID, searchParameters)).thenReturn(expected);
+		final var expected = Addresses.create().withContent(List.of(address()));
+		when(addressServiceMock.searchAddresses(MUNICIPALITY_ID, searchParameters)).thenReturn(expected);
 
-		final var addressResource = new AddressResource(addressService, restaurantNumberService);
-		final var response = addressResource.searchAddresses(MUNICIPALITY_ID, searchParameters);
+		final var response = webTestClient.get()
+			.uri(builder -> builder.path(SEARCH_PATH).queryParam("query", "Storgatan").build(Map.of("municipalityId", MUNICIPALITY_ID)))
+			.exchange()
+			.expectStatus().isOk()
+			.expectHeader().contentType(APPLICATION_JSON)
+			.expectBody(Addresses.class)
+			.returnResult()
+			.getResponseBody();
 
-		assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
-		assertThat(response.getBody()).isEqualTo(expected);
-		verify(addressService).searchAddresses(MUNICIPALITY_ID, searchParameters);
+		assertThat(response).isEqualTo(expected);
+		verify(addressServiceMock).searchAddresses(MUNICIPALITY_ID, searchParameters);
+		verifyNoMoreInteractions(addressServiceMock);
+		verifyNoInteractions(restaurantNumberServiceMock);
 	}
 
 	@Test
@@ -92,27 +142,44 @@ class AddressResourceTest {
 		final var lookupParameters = new AddressLookupParameters();
 		lookupParameters.setStreetAddress("Storgatan 1");
 		lookupParameters.setPostalCode("852 30");
-		final var expected = Address.create().withId(ADDRESS_ID).withStreetAddress("Storgatan 1").withPostalCode("852 30").withMunicipalityId(MUNICIPALITY_ID);
-		when(addressService.lookupAddress(MUNICIPALITY_ID, lookupParameters)).thenReturn(expected);
+		final var expected = address();
+		when(addressServiceMock.lookupAddress(MUNICIPALITY_ID, lookupParameters)).thenReturn(expected);
 
-		final var addressResource = new AddressResource(addressService, restaurantNumberService);
-		final var response = addressResource.lookupAddress(MUNICIPALITY_ID, lookupParameters);
+		final var response = webTestClient.get()
+			.uri(builder -> builder.path(LOOKUP_PATH).queryParam("streetAddress", "Storgatan 1").queryParam("postalCode", "852 30").build(Map.of("municipalityId", MUNICIPALITY_ID)))
+			.exchange()
+			.expectStatus().isOk()
+			.expectHeader().contentType(APPLICATION_JSON)
+			.expectBody(Address.class)
+			.returnResult()
+			.getResponseBody();
 
-		assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
-		assertThat(response.getBody()).isEqualTo(expected);
-		verify(addressService).lookupAddress(MUNICIPALITY_ID, lookupParameters);
+		assertThat(response).isEqualTo(expected);
+		verify(addressServiceMock).lookupAddress(MUNICIPALITY_ID, lookupParameters);
+		verifyNoMoreInteractions(addressServiceMock);
+		verifyNoInteractions(restaurantNumberServiceMock);
 	}
 
 	@Test
 	void createAddress() {
 		final var address = Address.create().withStreetAddress("Storgatan 1").withPostalCode("852 30").withPostalArea("Sundsvall");
-		when(addressService.createAddress(MUNICIPALITY_ID, address)).thenReturn(ADDRESS_ID);
+		when(addressServiceMock.createAddress(MUNICIPALITY_ID, address)).thenReturn(ADDRESS_ID);
 
-		final var addressResource = new AddressResource(addressService, restaurantNumberService);
-		final var response = addressResource.createAddress(MUNICIPALITY_ID, address);
+		webTestClient.post()
+			.uri(builder -> builder.path(PATH).build(Map.of("municipalityId", MUNICIPALITY_ID)))
+			.contentType(APPLICATION_JSON)
+			.bodyValue(address)
+			.exchange()
+			.expectStatus().isCreated()
+			.expectHeader().location("/2281/addresses/" + ADDRESS_ID)
+			.expectBody().isEmpty();
 
-		assertThat(response.getStatusCode()).isEqualTo(CREATED);
-		assertThat(response.getHeaders().getLocation()).hasToString("/2281/addresses/" + ADDRESS_ID);
-		verify(addressService).createAddress(MUNICIPALITY_ID, address);
+		verify(addressServiceMock).createAddress(MUNICIPALITY_ID, address);
+		verifyNoMoreInteractions(addressServiceMock);
+		verifyNoInteractions(restaurantNumberServiceMock);
+	}
+
+	private static Address address() {
+		return Address.create().withId(ADDRESS_ID).withStreetAddress("Storgatan 1").withPostalCode("852 30").withPostalArea("Sundsvall").withMunicipalityId(MUNICIPALITY_ID).withCreated(CREATED);
 	}
 }
