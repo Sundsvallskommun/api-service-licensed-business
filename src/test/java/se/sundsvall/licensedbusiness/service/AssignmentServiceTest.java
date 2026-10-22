@@ -621,7 +621,7 @@ class AssignmentServiceTest {
 			.withHolderName("Krogen AB")
 			.withPremisesName("Krogen")
 			.withValidFrom(LocalDate.of(2020, 1, 1))
-			.withValidTo(LocalDate.of(2026, 11, 30))
+			.withValidTo(LocalDate.of(2099, 11, 30))
 			.withStatus(ACTIVE);
 	}
 
@@ -631,7 +631,7 @@ class AssignmentServiceTest {
 			.withRestaurantNumber(restaurantNumber)
 			.withHolderName("Pizzerian HB")
 			.withPremisesName("Pizzerian")
-			.withValidFrom(LocalDate.of(2026, 12, 1))
+			.withValidFrom(LocalDate.of(2099, 12, 1))
 			.withStatus(ACTIVE);
 	}
 
@@ -644,16 +644,16 @@ class AssignmentServiceTest {
 		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(List.of(krogen, pizzerian));
 
 		final var assignmentService = assignmentService();
-		final var request = AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2026, 12, 15));
+		final var request = AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2099, 12, 15));
 
 		assertThatThrownBy(() -> assignmentService.updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, request))
 			.isInstanceOf(Problem.class)
-			.hasMessage("Conflict: The period 2020-01-01 to 2026-12-15 overlaps assignment assignment-pizzerian, which runs from 2026-12-01 to null")
+			.hasMessage("Conflict: The period 2020-01-01 to 2099-12-15 overlaps assignment assignment-pizzerian, which runs from 2099-12-01 to null")
 			.extracting("status").isEqualTo(CONFLICT);
 		verify(restaurantNumberAssignmentRepository).findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID);
 		verify(restaurantNumberAssignmentRepository).findAllByRestaurantNumber(restaurantNumber);
 		verifyNoMoreInteractions(restaurantNumberAssignmentRepository);
-		assertThat(pizzerian.getValidFrom()).isEqualTo(LocalDate.of(2026, 12, 1));
+		assertThat(pizzerian.getValidFrom()).isEqualTo(LocalDate.of(2099, 12, 1));
 		assertThat(pizzerian.getValidTo()).isNull();
 		assertThat(pizzerian.getStatus()).isEqualTo(ACTIVE);
 	}
@@ -666,11 +666,11 @@ class AssignmentServiceTest {
 		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(List.of(krogen, pizzerian(restaurantNumber)));
 
 		final var assignmentService = assignmentService();
-		final var request = AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2026, 12, 1));
+		final var request = AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2099, 12, 1));
 
 		assertThatThrownBy(() -> assignmentService.updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, request))
 			.isInstanceOf(Problem.class)
-			.hasMessage("Conflict: The period 2020-01-01 to 2026-12-01 overlaps assignment assignment-pizzerian, which runs from 2026-12-01 to null")
+			.hasMessage("Conflict: The period 2020-01-01 to 2099-12-01 overlaps assignment assignment-pizzerian, which runs from 2099-12-01 to null")
 			.extracting("status").isEqualTo(CONFLICT);
 		verify(restaurantNumberAssignmentRepository).findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID);
 		verify(restaurantNumberAssignmentRepository).findAllByRestaurantNumber(restaurantNumber);
@@ -688,30 +688,30 @@ class AssignmentServiceTest {
 		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(List.of(krogen, pizzerian));
 		when(restaurantNumberAssignmentRepository.saveAndFlush(krogen)).thenReturn(krogen);
 
-		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2026, 11, 15)));
+		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2099, 11, 15)));
 
 		assertThat(result.getId()).isEqualTo(ASSIGNMENT_ID);
-		assertThat(result.getValidTo()).isEqualTo(LocalDate.of(2026, 11, 15));
+		assertThat(result.getValidTo()).isEqualTo(LocalDate.of(2099, 11, 15));
 		verify(restaurantNumberAssignmentRepository).findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID);
 		verify(restaurantNumberAssignmentRepository).findAllByRestaurantNumber(restaurantNumber);
 		verify(restaurantNumberAssignmentRepository).saveAndFlush(krogen);
 		verifyNoMoreInteractions(restaurantNumberAssignmentRepository);
 		verifyNoInteractions(restaurantNumberRepository, addressRepository, licenseHolderRepository);
-		assertThat(pizzerian.getValidFrom()).isEqualTo(LocalDate.of(2026, 12, 1));
+		assertThat(pizzerian.getValidFrom()).isEqualTo(LocalDate.of(2099, 12, 1));
 		assertThat(pizzerian.getStatus()).isEqualTo(ACTIVE);
 	}
 
 	@Test
 	void updateAssignmentWithAValidToTheDayBeforeTheNextAssignmentStartsIsSaved() {
 		final var restaurantNumber = restaurantNumberEntity();
-		final var krogen = krogen(restaurantNumber).withValidTo(LocalDate.of(2026, 10, 31));
+		final var krogen = krogen(restaurantNumber).withValidTo(LocalDate.of(2099, 10, 31));
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(krogen));
 		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(List.of(krogen, pizzerian(restaurantNumber)));
 		when(restaurantNumberAssignmentRepository.saveAndFlush(krogen)).thenReturn(krogen);
 
-		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2026, 11, 30)));
+		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2099, 11, 30)));
 
-		assertThat(result.getValidTo()).isEqualTo(LocalDate.of(2026, 11, 30));
+		assertThat(result.getValidTo()).isEqualTo(LocalDate.of(2099, 11, 30));
 		verify(restaurantNumberAssignmentRepository).findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID);
 		verify(restaurantNumberAssignmentRepository).findAllByRestaurantNumber(restaurantNumber);
 		verify(restaurantNumberAssignmentRepository).saveAndFlush(krogen);
@@ -732,7 +732,7 @@ class AssignmentServiceTest {
 		assertThat(result.getId()).isEqualTo(ASSIGNMENT_ID);
 		assertThat(result.getPremisesName()).isEqualTo("Nya krogen");
 		assertThat(result.getHolderName()).isEqualTo("Krogen AB");
-		assertThat(result.getValidTo()).isEqualTo(LocalDate.of(2026, 11, 30));
+		assertThat(result.getValidTo()).isEqualTo(LocalDate.of(2099, 11, 30));
 		assertThat(result.getStatus()).isEqualTo(ACTIVE.name());
 		verify(restaurantNumberAssignmentRepository).findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID);
 		verify(restaurantNumberAssignmentRepository).saveAndFlush(krogen);
@@ -749,9 +749,9 @@ class AssignmentServiceTest {
 		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(List.of(krogen));
 		when(restaurantNumberAssignmentRepository.saveAndFlush(krogen)).thenReturn(krogen);
 
-		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2027, 6, 30)));
+		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2100, 6, 30)));
 
-		assertThat(result.getValidTo()).isEqualTo(LocalDate.of(2027, 6, 30));
+		assertThat(result.getValidTo()).isEqualTo(LocalDate.of(2100, 6, 30));
 		verify(restaurantNumberAssignmentRepository).findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID);
 		verify(restaurantNumberAssignmentRepository).findAllByRestaurantNumber(restaurantNumber);
 		verify(restaurantNumberAssignmentRepository).saveAndFlush(krogen);
