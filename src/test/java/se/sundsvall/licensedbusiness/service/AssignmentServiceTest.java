@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -58,9 +59,8 @@ class AssignmentServiceTest {
 	@Mock
 	private LicenseHolderRepository licenseHolderRepository;
 
-	private AssignmentService assignmentService() {
-		return new AssignmentService(restaurantNumberRepository, restaurantNumberAssignmentRepository, addressRepository, licenseHolderRepository);
-	}
+	@InjectMocks
+	private AssignmentService assignmentService;
 
 	private static RestaurantNumberEntity restaurantNumberEntity() {
 		return RestaurantNumberEntity.create().withId(RESTAURANT_NUMBER_ID).withRestaurantNumber(RESTAURANT_NUMBER).withMunicipalityId(MUNICIPALITY_ID).withAddress(addressEntity());
@@ -100,7 +100,7 @@ class AssignmentServiceTest {
 		when(restaurantNumberRepository.findByRestaurantNumberAndMunicipalityId(RESTAURANT_NUMBER, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
 		when(restaurantNumberAssignmentRepository.findFirstByRestaurantNumberOrderByValidFromDescCreatedDesc(restaurantNumber)).thenReturn(Optional.of(entity));
 
-		final var result = assignmentService().getLatestAssignment(MUNICIPALITY_ID, RESTAURANT_NUMBER);
+		final var result = assignmentService.getLatestAssignment(MUNICIPALITY_ID, RESTAURANT_NUMBER);
 
 		assertThat(result.getId()).isEqualTo(ASSIGNMENT_ID);
 		assertThat(result.getAddress().getStreetAddress()).isEqualTo("Storgatan 1");
@@ -111,8 +111,6 @@ class AssignmentServiceTest {
 	@Test
 	void getLatestAssignmentWithUnknownRestaurantNumber() {
 		when(restaurantNumberRepository.findByRestaurantNumberAndMunicipalityId(RESTAURANT_NUMBER, MUNICIPALITY_ID)).thenReturn(Optional.empty());
-
-		final var assignmentService = assignmentService();
 
 		assertThatThrownBy(() -> assignmentService.getLatestAssignment(MUNICIPALITY_ID, RESTAURANT_NUMBER))
 			.isInstanceOf(Problem.class)
@@ -126,8 +124,6 @@ class AssignmentServiceTest {
 		when(restaurantNumberRepository.findByRestaurantNumberAndMunicipalityId(RESTAURANT_NUMBER, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
 		when(restaurantNumberAssignmentRepository.findFirstByRestaurantNumberOrderByValidFromDescCreatedDesc(restaurantNumber)).thenReturn(Optional.empty());
 
-		final var assignmentService = assignmentService();
-
 		assertThatThrownBy(() -> assignmentService.getLatestAssignment(MUNICIPALITY_ID, RESTAURANT_NUMBER))
 			.isInstanceOf(Problem.class)
 			.hasMessageContaining("No assignment found for restaurant number " + RESTAURANT_NUMBER)
@@ -139,7 +135,7 @@ class AssignmentServiceTest {
 		final var entity = RestaurantNumberAssignmentEntity.create().withId(ASSIGNMENT_ID).withRestaurantNumber(restaurantNumberEntity());
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(entity));
 
-		final var result = assignmentService().getAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID);
+		final var result = assignmentService.getAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID);
 
 		assertThat(result.getId()).isEqualTo(ASSIGNMENT_ID);
 	}
@@ -147,8 +143,6 @@ class AssignmentServiceTest {
 	@Test
 	void getAssignmentNotFound() {
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.empty());
-
-		final var assignmentService = assignmentService();
 
 		assertThatThrownBy(() -> assignmentService.getAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID))
 			.isInstanceOf(Problem.class)
@@ -165,7 +159,7 @@ class AssignmentServiceTest {
 		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.of(licenseHolder));
 		when(restaurantNumberAssignmentRepository.save(any())).thenAnswer(invocation -> ((RestaurantNumberAssignmentEntity) invocation.getArgument(0)).withId(ASSIGNMENT_ID));
 
-		final var result = assignmentService().createAssignment(MUNICIPALITY_ID, createRequest());
+		final var result = assignmentService.createAssignment(MUNICIPALITY_ID, createRequest());
 
 		assertThat(result).isEqualTo(ASSIGNMENT_ID);
 		verify(licenseHolderRepository, never()).save(any());
@@ -187,7 +181,7 @@ class AssignmentServiceTest {
 		when(licenseHolderRepository.save(any())).thenAnswer(invocation -> ((LicenseHolderEntity) invocation.getArgument(0)).withId("holder-new"));
 		when(restaurantNumberAssignmentRepository.save(any())).thenAnswer(invocation -> ((RestaurantNumberAssignmentEntity) invocation.getArgument(0)).withId(ASSIGNMENT_ID));
 
-		assignmentService().createAssignment(MUNICIPALITY_ID, createRequest());
+		assignmentService.createAssignment(MUNICIPALITY_ID, createRequest());
 
 		final var captor = ArgumentCaptor.forClass(LicenseHolderEntity.class);
 		verify(licenseHolderRepository).save(captor.capture());
@@ -204,7 +198,7 @@ class AssignmentServiceTest {
 		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.of(LicenseHolderEntity.create().withId("holder-1").withOrgNumber(ORG_NUMBER)));
 		when(restaurantNumberAssignmentRepository.save(any())).thenAnswer(invocation -> ((RestaurantNumberAssignmentEntity) invocation.getArgument(0)).withId(ASSIGNMENT_ID));
 
-		final var result = assignmentService().createAssignment(MUNICIPALITY_ID, request);
+		final var result = assignmentService.createAssignment(MUNICIPALITY_ID, request);
 
 		assertThat(result).isEqualTo(ASSIGNMENT_ID);
 		final var captor = ArgumentCaptor.forClass(RestaurantNumberAssignmentEntity.class);
@@ -223,8 +217,6 @@ class AssignmentServiceTest {
 		when(restaurantNumberRepository.findWithLockByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(addressEntity()));
 		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(existing);
-
-		final var assignmentService = assignmentService();
 
 		assertThatThrownBy(() -> assignmentService.createAssignment(MUNICIPALITY_ID, request))
 			.isInstanceOf(Problem.class)
@@ -391,7 +383,7 @@ class AssignmentServiceTest {
 		when(restaurantNumberAssignmentRepository.save(any())).thenAnswer(invocation -> ((RestaurantNumberAssignmentEntity) invocation.getArgument(0)).withId(ASSIGNMENT_ID));
 
 		final var request = createRequest().withValidFrom(LocalDate.of(2020, 1, 1)).withValidTo(LocalDate.of(2020, 12, 31));
-		assignmentService().createAssignment(MUNICIPALITY_ID, request);
+		assignmentService.createAssignment(MUNICIPALITY_ID, request);
 
 		final var captor = ArgumentCaptor.forClass(RestaurantNumberAssignmentEntity.class);
 		verify(restaurantNumberAssignmentRepository).save(captor.capture());
@@ -400,7 +392,6 @@ class AssignmentServiceTest {
 
 	@Test
 	void createAssignmentWithValidToBeforeValidFrom() {
-		final var assignmentService = assignmentService();
 		final var request = createRequest().withValidTo(LocalDate.of(2025, 12, 31));
 
 		assertThatThrownBy(() -> assignmentService.createAssignment(MUNICIPALITY_ID, request))
@@ -413,7 +404,6 @@ class AssignmentServiceTest {
 	void createAssignmentWithUnknownRestaurantNumber() {
 		when(restaurantNumberRepository.findWithLockByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.empty());
 
-		final var assignmentService = assignmentService();
 		final var request = createRequest();
 
 		assertThatThrownBy(() -> assignmentService.createAssignment(MUNICIPALITY_ID, request))
@@ -427,7 +417,6 @@ class AssignmentServiceTest {
 		when(restaurantNumberRepository.findWithLockByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumberEntity()));
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.empty());
 
-		final var assignmentService = assignmentService();
 		final var request = createRequest();
 
 		assertThatThrownBy(() -> assignmentService.createAssignment(MUNICIPALITY_ID, request))
@@ -441,7 +430,6 @@ class AssignmentServiceTest {
 		when(restaurantNumberRepository.findWithLockByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumberEntity()));
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(AddressEntity.create().withId(ADDRESS_ID).withMunicipalityId("2260")));
 
-		final var assignmentService = assignmentService();
 		final var request = createRequest();
 
 		assertThatThrownBy(() -> assignmentService.createAssignment(MUNICIPALITY_ID, request))
@@ -460,7 +448,7 @@ class AssignmentServiceTest {
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(entity));
 		when(restaurantNumberAssignmentRepository.saveAndFlush(entity)).thenReturn(entity);
 
-		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2020, 12, 31)));
+		final var result = assignmentService.updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2020, 12, 31)));
 
 		assertThat(result.getValidTo()).isEqualTo(LocalDate.of(2020, 12, 31));
 		assertThat(result.getStatus()).isEqualTo(ENDED.name());
@@ -478,7 +466,7 @@ class AssignmentServiceTest {
 		when(restaurantNumberAssignmentRepository.saveAndFlush(entity)).thenReturn(entity);
 
 		final var future = LocalDate.now().plusYears(1);
-		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(future));
+		final var result = assignmentService.updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(future));
 
 		assertThat(result.getValidTo()).isEqualTo(future);
 		assertThat(result.getStatus()).isEqualTo(ACTIVE.name());
@@ -496,7 +484,7 @@ class AssignmentServiceTest {
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(entity));
 		when(restaurantNumberAssignmentRepository.saveAndFlush(entity)).thenReturn(entity);
 
-		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withPremisesName("Ny lokal"));
+		final var result = assignmentService.updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withPremisesName("Ny lokal"));
 
 		assertThat(result.getPremisesName()).isEqualTo("Ny lokal");
 		assertThat(result.getHolderName()).isEqualTo("Gammalt namn");
@@ -513,7 +501,6 @@ class AssignmentServiceTest {
 			.withStatus(ACTIVE);
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(entity));
 
-		final var assignmentService = assignmentService();
 		final var request = AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2019, 12, 31));
 
 		assertThatThrownBy(() -> assignmentService.updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, request))
@@ -533,7 +520,6 @@ class AssignmentServiceTest {
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(entity));
 		when(restaurantNumberAssignmentRepository.saveAndFlush(entity)).thenThrow(new OptimisticLockingFailureException("conflict"));
 
-		final var assignmentService = assignmentService();
 		final var request = AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2020, 12, 31));
 
 		assertThatThrownBy(() -> assignmentService.updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, request))
@@ -546,7 +532,6 @@ class AssignmentServiceTest {
 	void updateAssignmentNotFound() {
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.empty());
 
-		final var assignmentService = assignmentService();
 		final var request = AssignmentUpdateRequest.create().withPremisesName("Ny lokal");
 
 		assertThatThrownBy(() -> assignmentService.updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, request))
@@ -559,8 +544,6 @@ class AssignmentServiceTest {
 	void notFoundMessageSanitizesTheValueItEchoesBack() {
 		final var injected = "2281\r\nFAKE LOG LINE";
 		when(restaurantNumberRepository.findByRestaurantNumberAndMunicipalityId(injected, MUNICIPALITY_ID)).thenReturn(Optional.empty());
-
-		final var assignmentService = assignmentService();
 
 		assertThatThrownBy(() -> assignmentService.getLatestAssignment(MUNICIPALITY_ID, injected))
 			.isInstanceOf(Problem.class)
@@ -609,7 +592,7 @@ class AssignmentServiceTest {
 		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.of(licenseHolder));
 		when(restaurantNumberAssignmentRepository.save(any())).thenAnswer(invocation -> ((RestaurantNumberAssignmentEntity) invocation.getArgument(0)).withId(ASSIGNMENT_ID));
 
-		assignmentService().createAssignment(MUNICIPALITY_ID, createRequest().withOrgNumber("5566124144"));
+		assignmentService.createAssignment(MUNICIPALITY_ID, createRequest().withOrgNumber("5566124144"));
 
 		verify(licenseHolderRepository).findByOrgNumber(ORG_NUMBER);
 		verify(licenseHolderRepository, never()).save(any());
@@ -644,7 +627,6 @@ class AssignmentServiceTest {
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(krogen));
 		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(List.of(krogen, pizzerian));
 
-		final var assignmentService = assignmentService();
 		final var request = AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2099, 12, 15));
 
 		assertThatThrownBy(() -> assignmentService.updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, request))
@@ -666,7 +648,6 @@ class AssignmentServiceTest {
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(krogen));
 		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(List.of(krogen, pizzerian(restaurantNumber)));
 
-		final var assignmentService = assignmentService();
 		final var request = AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2099, 12, 1));
 
 		assertThatThrownBy(() -> assignmentService.updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, request))
@@ -688,7 +669,7 @@ class AssignmentServiceTest {
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(krogen));
 		when(restaurantNumberAssignmentRepository.saveAndFlush(krogen)).thenReturn(krogen);
 
-		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2099, 11, 15)));
+		final var result = assignmentService.updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2099, 11, 15)));
 
 		assertThat(result.getId()).isEqualTo(ASSIGNMENT_ID);
 		assertThat(result.getValidTo()).isEqualTo(LocalDate.of(2099, 11, 15));
@@ -709,7 +690,7 @@ class AssignmentServiceTest {
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(openEnded));
 		when(restaurantNumberAssignmentRepository.saveAndFlush(openEnded)).thenReturn(openEnded);
 
-		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2099, 10, 31)));
+		final var result = assignmentService.updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2099, 10, 31)));
 
 		assertThat(result.getValidTo()).isEqualTo(LocalDate.of(2099, 10, 31));
 		verify(restaurantNumberAssignmentRepository, never()).findAllByRestaurantNumber(any());
@@ -724,7 +705,7 @@ class AssignmentServiceTest {
 		when(restaurantNumberAssignmentRepository.saveAndFlush(krogen)).thenReturn(krogen);
 
 		final var request = AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2099, 11, 30)).withPremisesName("Nya krogen");
-		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, request);
+		final var result = assignmentService.updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, request);
 
 		assertThat(result.getValidTo()).isEqualTo(LocalDate.of(2099, 11, 30));
 		assertThat(result.getPremisesName()).isEqualTo("Nya krogen");
@@ -746,7 +727,7 @@ class AssignmentServiceTest {
 		when(restaurantNumberAssignmentRepository.saveAndFlush(krogen)).thenReturn(krogen);
 
 		final var request = AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2099, 11, 30)).withPremisesName("Nya krogen");
-		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, request);
+		final var result = assignmentService.updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, request);
 
 		assertThat(result.getValidTo()).isEqualTo(LocalDate.of(2099, 11, 30));
 		assertThat(result.getPremisesName()).isEqualTo("Nya krogen");
@@ -761,7 +742,7 @@ class AssignmentServiceTest {
 		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(List.of(krogen, pizzerian(restaurantNumber)));
 		when(restaurantNumberAssignmentRepository.saveAndFlush(krogen)).thenReturn(krogen);
 
-		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2099, 11, 30)));
+		final var result = assignmentService.updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2099, 11, 30)));
 
 		assertThat(result.getValidTo()).isEqualTo(LocalDate.of(2099, 11, 30));
 		verify(restaurantNumberAssignmentRepository).findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID);
@@ -780,7 +761,7 @@ class AssignmentServiceTest {
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(krogen));
 		when(restaurantNumberAssignmentRepository.saveAndFlush(krogen)).thenReturn(krogen);
 
-		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withPremisesName("Nya krogen"));
+		final var result = assignmentService.updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withPremisesName("Nya krogen"));
 
 		assertThat(result.getId()).isEqualTo(ASSIGNMENT_ID);
 		assertThat(result.getPremisesName()).isEqualTo("Nya krogen");
@@ -802,7 +783,7 @@ class AssignmentServiceTest {
 		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(List.of(krogen));
 		when(restaurantNumberAssignmentRepository.saveAndFlush(krogen)).thenReturn(krogen);
 
-		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2100, 6, 30)));
+		final var result = assignmentService.updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2100, 6, 30)));
 
 		assertThat(result.getValidTo()).isEqualTo(LocalDate.of(2100, 6, 30));
 		verify(restaurantNumberAssignmentRepository).findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID);
@@ -830,7 +811,6 @@ class AssignmentServiceTest {
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(entity));
 		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(List.of(entity, other));
 
-		final var assignmentService = assignmentService();
 		final var request = AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2030, 12, 31));
 
 		assertThatThrownBy(() -> assignmentService.updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, request))
@@ -872,7 +852,7 @@ class AssignmentServiceTest {
 		when(restaurantNumberRepository.findByRestaurantNumberAndMunicipalityId(RESTAURANT_NUMBER, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
 		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatusOrderByValidFromAscCreatedAsc(restaurantNumber, ACTIVE)).thenReturn(List.of(krogen, pizzerian));
 
-		final var result = assignmentService().getActiveAssignments(MUNICIPALITY_ID, RESTAURANT_NUMBER);
+		final var result = assignmentService.getActiveAssignments(MUNICIPALITY_ID, RESTAURANT_NUMBER);
 
 		assertThat(result).extracting("id").containsExactly("assignment-krogen", "assignment-pizzerian");
 		assertThat(result).extracting("premisesName").containsExactly("Krogen", "Pizzerian");
@@ -893,7 +873,7 @@ class AssignmentServiceTest {
 		when(restaurantNumberRepository.findByRestaurantNumberAndMunicipalityId(RESTAURANT_NUMBER, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
 		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatusOrderByValidFromAscCreatedAsc(restaurantNumber, ACTIVE)).thenReturn(List.of());
 
-		final var result = assignmentService().getActiveAssignments(MUNICIPALITY_ID, RESTAURANT_NUMBER);
+		final var result = assignmentService.getActiveAssignments(MUNICIPALITY_ID, RESTAURANT_NUMBER);
 
 		assertThat(result).isNotNull().isEmpty();
 		verify(restaurantNumberRepository).findByRestaurantNumberAndMunicipalityId(RESTAURANT_NUMBER, MUNICIPALITY_ID);
@@ -905,8 +885,6 @@ class AssignmentServiceTest {
 	@Test
 	void getActiveAssignmentsWithUnknownRestaurantNumber() {
 		when(restaurantNumberRepository.findByRestaurantNumberAndMunicipalityId(RESTAURANT_NUMBER, MUNICIPALITY_ID)).thenReturn(Optional.empty());
-
-		final var assignmentService = assignmentService();
 
 		assertThatThrownBy(() -> assignmentService.getActiveAssignments(MUNICIPALITY_ID, RESTAURANT_NUMBER))
 			.isInstanceOf(Problem.class)

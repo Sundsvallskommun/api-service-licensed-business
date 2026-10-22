@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -51,12 +52,14 @@ class RestaurantNumberServiceTest {
 	@Mock
 	private AddressRepository addressRepository;
 
+	@InjectMocks
+	private RestaurantNumberService restaurantNumberService;
+
 	@Test
 	void getRestaurantNumber() {
 		final var entity = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("22810001").withMunicipalityId(MUNICIPALITY_ID);
 		when(restaurantNumberRepository.findByRestaurantNumberAndMunicipalityId("22810001", MUNICIPALITY_ID)).thenReturn(Optional.of(entity));
 
-		final var restaurantNumberService = new RestaurantNumberService(restaurantNumberRepository, restaurantNumberAssignmentRepository, addressRepository);
 		final var result = restaurantNumberService.getRestaurantNumber(MUNICIPALITY_ID, "22810001");
 
 		assertThat(result.getId()).isEqualTo("number-1");
@@ -66,8 +69,6 @@ class RestaurantNumberServiceTest {
 	@Test
 	void getRestaurantNumberNotFound() {
 		when(restaurantNumberRepository.findByRestaurantNumberAndMunicipalityId("22810001", MUNICIPALITY_ID)).thenReturn(Optional.empty());
-
-		final var restaurantNumberService = new RestaurantNumberService(restaurantNumberRepository, restaurantNumberAssignmentRepository, addressRepository);
 
 		assertThatThrownBy(() -> restaurantNumberService.getRestaurantNumber(MUNICIPALITY_ID, "22810001"))
 			.isInstanceOf(Problem.class)
@@ -81,8 +82,6 @@ class RestaurantNumberServiceTest {
 		when(restaurantNumberRepository.findSequencedRestaurantNumbers(MUNICIPALITY_ID)).thenReturn(List.of());
 		when(restaurantNumberRepository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-		final var restaurantNumberService = new RestaurantNumberService(restaurantNumberRepository, restaurantNumberAssignmentRepository, addressRepository);
-
 		assertThat(restaurantNumberService.createRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID)).isEqualTo("22810001");
 	}
 
@@ -91,8 +90,6 @@ class RestaurantNumberServiceTest {
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(AddressEntity.create().withId(ADDRESS_ID).withMunicipalityId(MUNICIPALITY_ID)));
 		when(restaurantNumberRepository.findSequencedRestaurantNumbers(MUNICIPALITY_ID)).thenReturn(List.of("22810001", "22810003", "22819814", "2281037x"));
 		when(restaurantNumberRepository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-		final var restaurantNumberService = new RestaurantNumberService(restaurantNumberRepository, restaurantNumberAssignmentRepository, addressRepository);
 
 		assertThat(restaurantNumberService.createRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID)).isEqualTo("22810002");
 
@@ -113,8 +110,6 @@ class RestaurantNumberServiceTest {
 			.thenThrow(new DataIntegrityViolationException("duplicate"))
 			.thenAnswer(invocation -> invocation.getArgument(0));
 
-		final var restaurantNumberService = new RestaurantNumberService(restaurantNumberRepository, restaurantNumberAssignmentRepository, addressRepository);
-
 		assertThat(restaurantNumberService.createRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID)).isEqualTo("22810003");
 	}
 
@@ -123,8 +118,6 @@ class RestaurantNumberServiceTest {
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(AddressEntity.create().withId(ADDRESS_ID).withMunicipalityId(MUNICIPALITY_ID)));
 		when(restaurantNumberRepository.findSequencedRestaurantNumbers(MUNICIPALITY_ID)).thenReturn(List.of());
 		when(restaurantNumberRepository.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("duplicate"));
-
-		final var restaurantNumberService = new RestaurantNumberService(restaurantNumberRepository, restaurantNumberAssignmentRepository, addressRepository);
 
 		assertThatThrownBy(() -> restaurantNumberService.createRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID))
 			.isInstanceOf(Problem.class)
@@ -155,7 +148,6 @@ class RestaurantNumberServiceTest {
 		when(addressRepository.existsByIdAndMunicipalityId(ADDRESS_ID, MUNICIPALITY_ID)).thenReturn(true);
 		when(restaurantNumberRepository.findAvailableByMunicipalityIdAndAddressId(MUNICIPALITY_ID, ADDRESS_ID)).thenReturn(List.of(entity));
 
-		final var restaurantNumberService = new RestaurantNumberService(restaurantNumberRepository, restaurantNumberAssignmentRepository, addressRepository);
 		final var result = restaurantNumberService.getAvailableRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID);
 
 		assertThat(result).hasSize(1);
@@ -168,7 +160,6 @@ class RestaurantNumberServiceTest {
 		when(addressRepository.existsByIdAndMunicipalityId(ADDRESS_ID, MUNICIPALITY_ID)).thenReturn(true);
 		when(restaurantNumberRepository.findAvailableByMunicipalityIdAndAddressId(MUNICIPALITY_ID, ADDRESS_ID)).thenReturn(List.of());
 
-		final var restaurantNumberService = new RestaurantNumberService(restaurantNumberRepository, restaurantNumberAssignmentRepository, addressRepository);
 		final var result = restaurantNumberService.getAvailableRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID);
 
 		assertThat(result).isEmpty();
@@ -190,7 +181,6 @@ class RestaurantNumberServiceTest {
 			assignment(vacated, "Utan Tidsstämpel", LocalDate.of(2022, 1, 1), LocalDate.of(2022, 6, 30), ENDED, null)));
 		when(restaurantNumberRepository.findAllByMunicipalityIdAndAddress_IdOrderByRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID)).thenReturn(List.of(occupied, vacated, neverAssigned));
 
-		final var restaurantNumberService = new RestaurantNumberService(restaurantNumberRepository, restaurantNumberAssignmentRepository, addressRepository);
 		final var result = restaurantNumberService.getAddressRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID);
 
 		assertThat(result)
@@ -214,7 +204,6 @@ class RestaurantNumberServiceTest {
 			assignment(notYetOpened, "Kaffestugan", today.plusDays(20), null, ACTIVE, null)));
 		when(restaurantNumberRepository.findAllByMunicipalityIdAndAddress_IdOrderByRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID)).thenReturn(List.of(takenOver, notYetOpened));
 
-		final var restaurantNumberService = new RestaurantNumberService(restaurantNumberRepository, restaurantNumberAssignmentRepository, addressRepository);
 		final var result = restaurantNumberService.getAddressRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID);
 
 		assertThat(result)
@@ -235,7 +224,6 @@ class RestaurantNumberServiceTest {
 			assignment(reopening, "Nya Baren", today.plusMonths(1), null, ACTIVE, null)));
 		when(restaurantNumberRepository.findAllByMunicipalityIdAndAddress_IdOrderByRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID)).thenReturn(List.of(reopening));
 
-		final var restaurantNumberService = new RestaurantNumberService(restaurantNumberRepository, restaurantNumberAssignmentRepository, addressRepository);
 		final var result = restaurantNumberService.getAddressRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID);
 
 		assertThat(result)
@@ -254,7 +242,6 @@ class RestaurantNumberServiceTest {
 			assignment(number, "Pizzerian", today.plusDays(1), null, ACTIVE, OffsetDateTime.of(2024, 6, 1, 10, 0, 0, 0, UTC))));
 		when(restaurantNumberRepository.findAllByMunicipalityIdAndAddress_IdOrderByRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID)).thenReturn(List.of(number));
 
-		final var restaurantNumberService = new RestaurantNumberService(restaurantNumberRepository, restaurantNumberAssignmentRepository, addressRepository);
 		final var result = restaurantNumberService.getAddressRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID);
 
 		assertThat(result)
@@ -277,7 +264,6 @@ class RestaurantNumberServiceTest {
 			assignment(number, "Pizzerian", today, null, ACTIVE, OffsetDateTime.of(2024, 6, 1, 10, 0, 0, 0, UTC))));
 		when(restaurantNumberRepository.findAllByMunicipalityIdAndAddress_IdOrderByRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID)).thenReturn(List.of(number));
 
-		final var restaurantNumberService = new RestaurantNumberService(restaurantNumberRepository, restaurantNumberAssignmentRepository, addressRepository);
 		final var result = restaurantNumberService.getAddressRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID);
 
 		assertThat(result)
@@ -292,8 +278,6 @@ class RestaurantNumberServiceTest {
 	@Test
 	void getAddressRestaurantNumbersWithUnknownAddress() {
 		when(addressRepository.existsByIdAndMunicipalityId(ADDRESS_ID, MUNICIPALITY_ID)).thenReturn(false);
-
-		final var restaurantNumberService = new RestaurantNumberService(restaurantNumberRepository, restaurantNumberAssignmentRepository, addressRepository);
 
 		assertThatThrownBy(() -> restaurantNumberService.getAddressRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID))
 			.isInstanceOf(Problem.class)
@@ -316,8 +300,6 @@ class RestaurantNumberServiceTest {
 	@Test
 	void getAvailableRestaurantNumbersWithUnknownAddress() {
 		when(addressRepository.existsByIdAndMunicipalityId(ADDRESS_ID, MUNICIPALITY_ID)).thenReturn(false);
-
-		final var restaurantNumberService = new RestaurantNumberService(restaurantNumberRepository, restaurantNumberAssignmentRepository, addressRepository);
 
 		assertThatThrownBy(() -> restaurantNumberService.getAvailableRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID))
 			.isInstanceOf(Problem.class)

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
@@ -41,12 +42,14 @@ class AddressServiceTest {
 	@Mock
 	private AddressRepository addressRepository;
 
+	@InjectMocks
+	private AddressService addressService;
+
 	@Test
 	void createAddressNormalizesBeforeLookupAndInsert() {
 		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID)).thenReturn(Optional.empty());
 		when(addressRepository.save(any())).thenAnswer(invocation -> ((AddressEntity) invocation.getArgument(0)).withId(ADDRESS_ID));
 
-		final var addressService = new AddressService(addressRepository);
 		final var result = addressService.createAddress(MUNICIPALITY_ID, Address.create()
 			.withStreetAddress("  Storgatan   1 ")
 			.withPostalCode("85230")
@@ -67,7 +70,6 @@ class AddressServiceTest {
 		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID)).thenReturn(Optional.empty());
 		when(addressRepository.save(any())).thenAnswer(invocation -> ((AddressEntity) invocation.getArgument(0)).withId(ADDRESS_ID));
 
-		final var addressService = new AddressService(addressRepository);
 		addressService.createAddress(MUNICIPALITY_ID, Address.create().withStreetAddress("Storgatan 1").withPostalCode("852 30"));
 
 		final var captor = ArgumentCaptor.forClass(AddressEntity.class);
@@ -80,7 +82,6 @@ class AddressServiceTest {
 		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID))
 			.thenReturn(Optional.of(AddressEntity.create().withId(ADDRESS_ID)));
 
-		final var addressService = new AddressService(addressRepository);
 		final var address = Address.create().withStreetAddress("Storgatan 1").withPostalCode("85230");
 
 		assertThatThrownBy(() -> addressService.createAddress(MUNICIPALITY_ID, address))
@@ -95,7 +96,6 @@ class AddressServiceTest {
 		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID))
 			.thenReturn(Optional.of(AddressEntity.create().withId(ADDRESS_ID)));
 
-		final var addressService = new AddressService(addressRepository);
 		final var address = Address.create().withStreetAddress("Storgatan 1").withPostalCode("852 30");
 
 		assertThatThrownBy(() -> addressService.createAddress(MUNICIPALITY_ID, address))
@@ -117,7 +117,6 @@ class AddressServiceTest {
 			.withMunicipalityId(MUNICIPALITY_ID);
 		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId(any(), any(), any())).thenReturn(Optional.of(entity));
 
-		final var addressService = new AddressService(addressRepository);
 		final var result = addressService.lookupAddress(MUNICIPALITY_ID, lookupParameters(streetAddress, postalCode));
 
 		assertThat(result.getId()).isEqualTo(ADDRESS_ID);
@@ -134,7 +133,6 @@ class AddressServiceTest {
 		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId(any(), any(), any()))
 			.thenReturn(Optional.of(AddressEntity.create().withId(ADDRESS_ID)));
 
-		final var addressService = new AddressService(addressRepository);
 		addressService.lookupAddress(MUNICIPALITY_ID, lookupParameters(streetAddress, "852 30"));
 
 		final var captor = ArgumentCaptor.forClass(String.class);
@@ -154,7 +152,6 @@ class AddressServiceTest {
 			.withCreated(created);
 		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID)).thenReturn(Optional.of(entity));
 
-		final var addressService = new AddressService(addressRepository);
 		final var result = addressService.lookupAddress(MUNICIPALITY_ID, lookupParameters("Storgatan 1", "852 30"));
 
 		assertThat(result.getId()).isEqualTo(ADDRESS_ID);
@@ -169,7 +166,6 @@ class AddressServiceTest {
 	void lookupAddressNotFound() {
 		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", MUNICIPALITY_ID)).thenReturn(Optional.empty());
 
-		final var addressService = new AddressService(addressRepository);
 		final var parameters = lookupParameters("Storgatan 1", "852 30");
 
 		assertThatThrownBy(() -> addressService.lookupAddress(MUNICIPALITY_ID, parameters))
@@ -182,7 +178,6 @@ class AddressServiceTest {
 	void lookupAddressInOtherMunicipalityIsNotAHit() {
 		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("Storgatan 1", "852 30", OTHER_MUNICIPALITY_ID)).thenReturn(Optional.empty());
 
-		final var addressService = new AddressService(addressRepository);
 		final var parameters = lookupParameters("Storgatan 1", "852 30");
 
 		assertThatThrownBy(() -> addressService.lookupAddress(OTHER_MUNICIPALITY_ID, parameters))
@@ -194,8 +189,6 @@ class AddressServiceTest {
 	void lookupMissIsFollowedByACreateThatDoesNotConflict() {
 		when(addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId("storgatan 1a", "852 30", MUNICIPALITY_ID)).thenReturn(Optional.empty());
 		when(addressRepository.save(any())).thenAnswer(invocation -> ((AddressEntity) invocation.getArgument(0)).withId(ADDRESS_ID));
-
-		final var addressService = new AddressService(addressRepository);
 
 		assertThatThrownBy(() -> addressService.lookupAddress(MUNICIPALITY_ID, lookupParameters("storgatan 1 a", "85230")))
 			.isInstanceOf(Problem.class)
@@ -227,7 +220,6 @@ class AddressServiceTest {
 			.withCreated(created);
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(entity));
 
-		final var addressService = new AddressService(addressRepository);
 		final var result = addressService.getAddress(MUNICIPALITY_ID, ADDRESS_ID);
 
 		assertThat(result.getId()).isEqualTo(ADDRESS_ID);
@@ -242,8 +234,6 @@ class AddressServiceTest {
 	void getAddressNotFound() {
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.empty());
 
-		final var addressService = new AddressService(addressRepository);
-
 		assertThatThrownBy(() -> addressService.getAddress(MUNICIPALITY_ID, ADDRESS_ID))
 			.isInstanceOf(Problem.class)
 			.hasMessageContaining("Address " + ADDRESS_ID + " not found");
@@ -253,8 +243,6 @@ class AddressServiceTest {
 	void getAddressWrongMunicipality() {
 		final var entity = AddressEntity.create().withId(ADDRESS_ID).withMunicipalityId("9999");
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(entity));
-
-		final var addressService = new AddressService(addressRepository);
 
 		assertThatThrownBy(() -> addressService.getAddress(MUNICIPALITY_ID, ADDRESS_ID))
 			.isInstanceOf(Problem.class)
@@ -271,7 +259,6 @@ class AddressServiceTest {
 		final var page = new PageImpl<>(List.of(entity), expectedPageable, 1);
 		when(addressRepository.findAllByMunicipalityId(MUNICIPALITY_ID, expectedPageable)).thenReturn(page);
 
-		final var addressService = new AddressService(addressRepository);
 		final var result = addressService.getAddresses(MUNICIPALITY_ID, pagingParameters);
 
 		assertThat(result.getContent()).hasSize(1);
@@ -290,7 +277,6 @@ class AddressServiceTest {
 		final var page = new PageImpl<>(List.of(entity), expectedPageable, 1);
 		when(addressRepository.findAllByMunicipalityIdAndStreetAddressContainingIgnoreCase(MUNICIPALITY_ID, "Storgatan", expectedPageable)).thenReturn(page);
 
-		final var addressService = new AddressService(addressRepository);
 		final var result = addressService.searchAddresses(MUNICIPALITY_ID, searchParameters);
 
 		assertThat(result.getContent()).hasSize(1);
