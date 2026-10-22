@@ -1,6 +1,7 @@
 package se.sundsvall.licensedbusiness.service;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
@@ -59,6 +60,16 @@ public class AssignmentService {
 	}
 
 	@Transactional(readOnly = true)
+	public List<Assignment> getActiveAssignments(final String municipalityId, final String restaurantNumber) {
+		final var restaurantNumberEntity = restaurantNumberRepository.findByRestaurantNumberAndMunicipalityId(restaurantNumber, municipalityId)
+			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Restaurant number %s not found".formatted(sanitize(restaurantNumber))));
+
+		return restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatusOrderByValidFromAscCreatedAsc(restaurantNumberEntity, ACTIVE).stream()
+			.map(assignmentMapper::toAssignment)
+			.toList();
+	}
+
+	@Transactional(readOnly = true)
 	public Assignment getAssignment(final String municipalityId, final String assignmentId) {
 		return restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(assignmentId, municipalityId)
 			.map(assignmentMapper::toAssignment)
@@ -69,21 +80,20 @@ public class AssignmentService {
 	public String createAssignment(final String municipalityId, final AssignmentCreateRequest request) {
 		validateValidToNotBeforeValidFrom(request.getValidFrom(), request.getValidTo());
 
-		final var restaurantNumber = restaurantNumberRepository.findByIdAndMunicipalityId(request.getRestaurantNumberId(), municipalityId)
+		final var restaurantNumber = restaurantNumberRepository.findWithLockByIdAndMunicipalityId(request.getRestaurantNumberId(), municipalityId)
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Restaurant number with ID %s not found".formatted(sanitize(request.getRestaurantNumberId()))));
 		final var address = addressRepository.findById(request.getAddressId())
 			.filter(entity -> municipalityId.equals(entity.getMunicipalityId()))
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Address %s not found".formatted(sanitize(request.getAddressId()))));
 
 		validateAddressBelongsToRestaurantNumber(restaurantNumber, address);
+		validateNoOverlap(restaurantNumber, null, request.getValidFrom(), request.getValidTo());
 
 		final var orgNumber = OrgNumberNormalizer.normalize(request.getOrgNumber());
 		final var licenseHolder = licenseHolderRepository.findByOrgNumber(orgNumber)
 			.orElseGet(() -> licenseHolderRepository.save(LicenseHolderEntity.create()
 				.withOrgNumber(orgNumber)
 				.withName(request.getHolderName())));
-
-		endOverlappingAssignmentsOrReject(restaurantNumber, request.getValidFrom(), request.getValidTo());
 
 		return restaurantNumberAssignmentRepository.save(RestaurantNumberAssignmentEntity.create()
 			.withRestaurantNumber(restaurantNumber)
@@ -102,17 +112,17 @@ public class AssignmentService {
 		final var entity = restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(assignmentId, municipalityId)
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Assignment %s not found".formatted(sanitize(assignmentId))));
 
-		Optional.ofNullable(request.getValidTo()).ifPresent(entity::setValidTo);
+		final var validTo = Optional.ofNullable(request.getValidTo()).orElse(entity.getValidTo());
+		validateValidToNotBeforeValidFrom(entity.getValidFrom(), validTo);
+		if (extendsPeriod(entity.getValidTo(), request.getValidTo())) {
+			restaurantNumberRepository.findWithLockById(entity.getRestaurantNumber().getId());
+			validateNoOverlap(entity.getRestaurantNumber(), entity.getId(), entity.getValidFrom(), validTo);
+		}
+
+		entity.setValidTo(validTo);
 		Optional.ofNullable(request.getPremisesName()).ifPresent(entity::setPremisesName);
 		Optional.ofNullable(request.getHolderName()).ifPresent(entity::setHolderName);
-
-		validateValidToNotBeforeValidFrom(entity.getValidFrom(), entity.getValidTo());
-
-		final var status = resolveStatus(entity.getValidTo());
-		if (status == ACTIVE) {
-			validateNoOtherActiveAssignment(entity);
-		}
-		entity.setStatus(status);
+		entity.setStatus(resolveStatus(validTo));
 
 		try {
 			return assignmentMapper.toAssignment(restaurantNumberAssignmentRepository.saveAndFlush(entity));
@@ -121,37 +131,26 @@ public class AssignmentService {
 		}
 	}
 
-	private void endOverlappingAssignmentsOrReject(final RestaurantNumberEntity restaurantNumber, final LocalDate newValidFrom, final LocalDate newValidTo) {
-		final var newAssignmentTakesOver = resolveStatus(newValidTo) == ACTIVE;
-		final var lastValidDay = newValidFrom.minusDays(1);
-
+	private void validateNoOverlap(final RestaurantNumberEntity restaurantNumber, final String assignmentId, final LocalDate validFrom, final LocalDate validTo) {
 		restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber).stream()
-			.filter(current -> overlaps(current, newValidFrom, newValidTo))
-			.forEach(current -> {
-				if (!newAssignmentTakesOver || !current.getValidFrom().isBefore(newValidFrom)) {
-					throw Problem.valueOf(BAD_REQUEST, "The period %s to %s overlaps assignment %s, which runs from %s to %s".formatted(
-						newValidFrom, newValidTo, sanitize(current.getId()), current.getValidFrom(), current.getValidTo()));
-				}
-				current.setValidTo(lastValidDay);
-				current.setStatus(resolveStatus(lastValidDay));
+			.filter(other -> !other.getId().equals(assignmentId))
+			.filter(other -> overlaps(other, validFrom, validTo))
+			.findFirst()
+			.ifPresent(other -> {
+				throw Problem.valueOf(CONFLICT, "The period %s to %s overlaps assignment %s, which runs from %s to %s".formatted(
+					validFrom, validTo, sanitize(other.getId()), other.getValidFrom(), other.getValidTo()));
 			});
+	}
+
+	private static boolean extendsPeriod(final LocalDate currentValidTo, final LocalDate newValidTo) {
+		return (currentValidTo != null) && (newValidTo != null) && newValidTo.isAfter(currentValidTo);
 	}
 
 	private static boolean overlaps(final RestaurantNumberAssignmentEntity assignment, final LocalDate from, final LocalDate to) {
-		final var startsBeforeTheNewPeriodEnds = (to == null) || !assignment.getValidFrom().isAfter(to);
-		final var endsAfterTheNewPeriodStarts = (assignment.getValidTo() == null) || !assignment.getValidTo().isBefore(from);
+		final var startsBeforeThePeriodEnds = (to == null) || !assignment.getValidFrom().isAfter(to);
+		final var endsAfterThePeriodStarts = (assignment.getValidTo() == null) || !assignment.getValidTo().isBefore(from);
 
-		return startsBeforeTheNewPeriodEnds && endsAfterTheNewPeriodStarts;
-	}
-
-	private void validateNoOtherActiveAssignment(final RestaurantNumberAssignmentEntity assignment) {
-		restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatus(assignment.getRestaurantNumber(), ACTIVE).stream()
-			.filter(other -> !other.getId().equals(assignment.getId()))
-			.findFirst()
-			.ifPresent(other -> {
-				throw Problem.valueOf(BAD_REQUEST, "Restaurant number %s already has an active assignment with ID %s".formatted(
-					sanitize(assignment.getRestaurantNumber().getRestaurantNumber()), sanitize(other.getId())));
-			});
+		return startsBeforeThePeriodEnds && endsAfterThePeriodStarts;
 	}
 
 	private static void validateAddressBelongsToRestaurantNumber(final RestaurantNumberEntity restaurantNumber, final AddressEntity address) {

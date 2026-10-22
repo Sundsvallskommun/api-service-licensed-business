@@ -1,0 +1,30 @@
+{
+	"id": "it-assignment-2",
+	"restaurantNumber": {
+		"id": "it-number-3",
+		"number": "22810004",
+		"municipalityId": "2281",
+		"reported": true,
+		"created": "${json-unit.any-string}"
+	},
+	"address": {
+		"id": "it-address-3",
+		"streetAddress": "Testvägen 12",
+		"postalCode": "852 31",
+		"postalArea": "Sundsvall",
+		"municipalityId": "2281",
+		"created": "${json-unit.any-string}"
+	},
+	"licenseHolder": {
+		"id": "it-holder-2",
+		"orgNumber": "556600-3344",
+		"name": "Provkrogen HB",
+		"created": "${json-unit.any-string}"
+	},
+	"holderName": "Provkrogen HB",
+	"premisesName": "Testbaren",
+	"validFrom": "2019-01-01",
+	"validTo": "2019-12-31",
+	"status": "ENDED",
+	"created": "${json-unit.any-string}"
+}

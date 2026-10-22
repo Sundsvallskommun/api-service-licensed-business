@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.PATCH;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.CREATED;
@@ -237,6 +238,58 @@ class AddressIT extends AbstractAppTest {
 	@Test
 	void test16_getAddressRestaurantNumbersForUnknownAddress() {
 		getAddressRestaurantNumbers("does-not-exist", NOT_FOUND);
+	}
+
+	@Test
+	void test17_getAddressRestaurantNumbersWithTwoActiveAssignmentsOnTheNumber() {
+		setupCall()
+			.withServicePath(fromPath("/{municipalityId}/assignments/{assignmentId}").build(MUNICIPALITY_ID, "it-assignment-1").toString())
+			.withHttpMethod(PATCH)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withRequest("request-end.json")
+			.withExpectedResponseStatus(OK)
+			.sendRequestAndVerifyResponse();
+		createAssignment("request-pizzerian.json");
+
+		getAddressRestaurantNumbers("it-address-1", OK);
+		getAvailableRestaurantNumbers("it-address-1");
+	}
+
+	@Test
+	void test18_numberStaysActiveWhenTheOldAssignmentEndsAndANewOneTakesOver() {
+		setupCall()
+			.withServicePath(fromPath("/{municipalityId}/assignments/{assignmentId}").build(MUNICIPALITY_ID, "it-assignment-1").toString())
+			.withHttpMethod(PATCH)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withRequest("request-end.json")
+			.withExpectedResponseStatus(OK)
+			.withExpectedResponse("response-end.json")
+			.sendRequestAndVerifyResponse();
+
+		createAssignment("request-pizzerian.json");
+
+		getAddressRestaurantNumbers("it-address-1", OK);
+		getAvailableRestaurantNumbers("it-address-1");
+	}
+
+	private void createAssignment(final String requestFile) {
+		setupCall()
+			.withServicePath(fromPath("/{municipalityId}/assignments").build(MUNICIPALITY_ID).toString())
+			.withHttpMethod(POST)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withRequest(requestFile)
+			.withExpectedResponseStatus(CREATED)
+			.sendRequestAndVerifyResponse();
+	}
+
+	private void getAvailableRestaurantNumbers(final String addressId) {
+		setupCall()
+			.withServicePath(fromPath("/{municipalityId}/restaurant-numbers/available").queryParam("addressId", addressId).build(MUNICIPALITY_ID).toString())
+			.withHttpMethod(GET)
+			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
+			.withExpectedResponseStatus(OK)
+			.withExpectedResponse("response-available.json")
+			.sendRequestAndVerifyResponse();
 	}
 
 	private void getAddressRestaurantNumbers(final String addressId, final HttpStatus expectedStatus) {

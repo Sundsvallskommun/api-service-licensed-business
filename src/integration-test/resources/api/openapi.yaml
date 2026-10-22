@@ -106,8 +106,12 @@ paths:
     post:
       tags:
       - Assignment Resources
-      summary: "Create an assignment, ending any active assignment on the same restaurant\
-        \ number"
+      summary: Create an assignment
+      description: "The period must not overlap any other assignment on the restaurant\
+        \ number, ended ones included. validFrom and validTo are both inclusive, so\
+        \ the previous assignment must have a validTo before a new one can be created,\
+        \ and the new one can start the day after at the earliest. Existing assignments\
+        \ are never changed."
       operationId: createAssignment
       parameters:
       - name: municipalityId
@@ -133,6 +137,13 @@ paths:
                 type: string
         "404":
           description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: "Conflict, the period overlaps another assignment on the restaurant\
+            \ number"
           content:
             application/problem+json:
               schema:
@@ -341,6 +352,9 @@ paths:
       tags:
       - Assignment Resources
       summary: Update an assignment
+      description: "A validTo that moves the end of the period later must not make\
+        \ the period overlap any other assignment on the restaurant number, ended\
+        \ ones included. An earlier or unchanged validTo is not checked."
       operationId: updateAssignment
       parameters:
       - name: municipalityId
@@ -372,6 +386,14 @@ paths:
                 $ref: "#/components/schemas/Assignment"
         "404":
           description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: "Conflict, either the new validTo makes the period overlap\
+            \ another assignment on the restaurant number, or the assignment was updated\
+            \ by someone else and must be reloaded before trying again"
           content:
             application/problem+json:
               schema:
@@ -422,6 +444,63 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/RestaurantNumber"
+        "404":
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "400":
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "500":
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "502":
+          description: Bad Gateway
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /{municipalityId}/restaurant-numbers/{restaurantNumber}/assignments:
+    get:
+      tags:
+      - Restaurant Number Resources
+      summary: "Get the active assignments for a restaurant number, including their\
+        \ address and license holder, oldest validFrom first"
+      description: "Active means status ACTIVE, that is not ended. Assignments that\
+        \ have not started yet are included."
+      operationId: getActiveAssignments
+      parameters:
+      - name: municipalityId
+        in: path
+        description: Municipality ID
+        required: true
+        schema:
+          type: string
+        example: 2281
+      - name: restaurantNumber
+        in: path
+        description: Restaurant number
+        required: true
+        schema:
+          type: string
+        example: 22813670
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Assignment"
         "404":
           description: Not Found
           content:
