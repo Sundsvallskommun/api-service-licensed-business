@@ -112,15 +112,16 @@ public class AssignmentService {
 		final var entity = restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(assignmentId, municipalityId)
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Assignment %s not found".formatted(sanitize(assignmentId))));
 
-		Optional.ofNullable(request.getValidTo()).ifPresent(entity::setValidTo);
+		final var validTo = Optional.ofNullable(request.getValidTo()).orElse(entity.getValidTo());
+		validateValidToNotBeforeValidFrom(entity.getValidFrom(), validTo);
+		if (extendsPeriod(entity.getValidTo(), request.getValidTo())) {
+			validateNoOverlap(entity.getRestaurantNumber(), entity.getId(), entity.getValidFrom(), validTo);
+		}
+
+		entity.setValidTo(validTo);
 		Optional.ofNullable(request.getPremisesName()).ifPresent(entity::setPremisesName);
 		Optional.ofNullable(request.getHolderName()).ifPresent(entity::setHolderName);
-
-		validateValidToNotBeforeValidFrom(entity.getValidFrom(), entity.getValidTo());
-		Optional.ofNullable(request.getValidTo())
-			.ifPresent(validTo -> validateNoOverlap(entity.getRestaurantNumber(), entity.getId(), entity.getValidFrom(), validTo));
-
-		entity.setStatus(resolveStatus(entity.getValidTo()));
+		entity.setStatus(resolveStatus(validTo));
 
 		try {
 			return assignmentMapper.toAssignment(restaurantNumberAssignmentRepository.saveAndFlush(entity));
@@ -138,6 +139,10 @@ public class AssignmentService {
 				throw Problem.valueOf(CONFLICT, "The period %s to %s overlaps assignment %s, which runs from %s to %s".formatted(
 					validFrom, validTo, sanitize(other.getId()), other.getValidFrom(), other.getValidTo()));
 			});
+	}
+
+	private static boolean extendsPeriod(final LocalDate currentValidTo, final LocalDate newValidTo) {
+		return (currentValidTo != null) && (newValidTo != null) && newValidTo.isAfter(currentValidTo);
 	}
 
 	private static boolean overlaps(final RestaurantNumberAssignmentEntity assignment, final LocalDate from, final LocalDate to) {

@@ -680,12 +680,10 @@ class AssignmentServiceTest {
 	}
 
 	@Test
-	void updateAssignmentWithAnEarlierValidToBeforeTheNextAssignmentIsSaved() {
+	void updateAssignmentWithAnEarlierValidToIsSavedWithoutAnOverlapCheck() {
 		final var restaurantNumber = restaurantNumberEntity();
 		final var krogen = krogen(restaurantNumber);
-		final var pizzerian = pizzerian(restaurantNumber);
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(krogen));
-		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(List.of(krogen, pizzerian));
 		when(restaurantNumberAssignmentRepository.saveAndFlush(krogen)).thenReturn(krogen);
 
 		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2099, 11, 15)));
@@ -693,12 +691,64 @@ class AssignmentServiceTest {
 		assertThat(result.getId()).isEqualTo(ASSIGNMENT_ID);
 		assertThat(result.getValidTo()).isEqualTo(LocalDate.of(2099, 11, 15));
 		verify(restaurantNumberAssignmentRepository).findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID);
-		verify(restaurantNumberAssignmentRepository).findAllByRestaurantNumber(restaurantNumber);
 		verify(restaurantNumberAssignmentRepository).saveAndFlush(krogen);
 		verifyNoMoreInteractions(restaurantNumberAssignmentRepository);
 		verifyNoInteractions(restaurantNumberRepository, addressRepository, licenseHolderRepository);
-		assertThat(pizzerian.getValidFrom()).isEqualTo(LocalDate.of(2099, 12, 1));
-		assertThat(pizzerian.getStatus()).isEqualTo(ACTIVE);
+	}
+
+	@Test
+	void updateAssignmentEndingAnAssignmentThatAlreadyOverlapsAnotherIsSaved() {
+		final var restaurantNumber = restaurantNumberEntity();
+		final var openEnded = RestaurantNumberAssignmentEntity.create()
+			.withId(ASSIGNMENT_ID)
+			.withRestaurantNumber(restaurantNumber)
+			.withValidFrom(LocalDate.of(2015, 1, 1))
+			.withStatus(ACTIVE);
+		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(openEnded));
+		when(restaurantNumberAssignmentRepository.saveAndFlush(openEnded)).thenReturn(openEnded);
+
+		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2099, 10, 31)));
+
+		assertThat(result.getValidTo()).isEqualTo(LocalDate.of(2099, 10, 31));
+		verify(restaurantNumberAssignmentRepository, never()).findAllByRestaurantNumber(any());
+		verifyNoInteractions(restaurantNumberRepository);
+	}
+
+	@Test
+	void updateAssignmentWithAnUnchangedValidToAndANewPremisesNameIsSavedWithoutAnOverlapCheck() {
+		final var restaurantNumber = restaurantNumberEntity();
+		final var krogen = krogen(restaurantNumber);
+		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(krogen));
+		when(restaurantNumberAssignmentRepository.saveAndFlush(krogen)).thenReturn(krogen);
+
+		final var request = AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2099, 11, 30)).withPremisesName("Nya krogen");
+		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, request);
+
+		assertThat(result.getValidTo()).isEqualTo(LocalDate.of(2099, 11, 30));
+		assertThat(result.getPremisesName()).isEqualTo("Nya krogen");
+		verify(restaurantNumberAssignmentRepository, never()).findAllByRestaurantNumber(any());
+		verifyNoInteractions(restaurantNumberRepository);
+	}
+
+	@Test
+	void updateAssignmentChecksForOverlapsBeforeChangingTheAssignment() {
+		final var restaurantNumber = restaurantNumberEntity();
+		final var krogen = krogen(restaurantNumber).withValidTo(LocalDate.of(2099, 10, 31));
+		final var pizzerian = pizzerian(restaurantNumber);
+		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(krogen));
+		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenAnswer(invocation -> {
+			assertThat(krogen.getValidTo()).isEqualTo(LocalDate.of(2099, 10, 31));
+			assertThat(krogen.getPremisesName()).isEqualTo("Krogen");
+			return List.of(krogen, pizzerian);
+		});
+		when(restaurantNumberAssignmentRepository.saveAndFlush(krogen)).thenReturn(krogen);
+
+		final var request = AssignmentUpdateRequest.create().withValidTo(LocalDate.of(2099, 11, 30)).withPremisesName("Nya krogen");
+		final var result = assignmentService().updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, request);
+
+		assertThat(result.getValidTo()).isEqualTo(LocalDate.of(2099, 11, 30));
+		assertThat(result.getPremisesName()).isEqualTo("Nya krogen");
+		verify(restaurantNumberAssignmentRepository).findAllByRestaurantNumber(restaurantNumber);
 	}
 
 	@Test
