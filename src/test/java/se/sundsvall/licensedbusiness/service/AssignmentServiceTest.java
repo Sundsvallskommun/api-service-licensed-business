@@ -28,6 +28,7 @@ import se.sundsvall.licensedbusiness.service.mapper.RestaurantNumberMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -69,6 +70,12 @@ class AssignmentServiceTest {
 
 	private static RestaurantNumberEntity restaurantNumberEntity() {
 		return RestaurantNumberEntity.create().withId(RESTAURANT_NUMBER_ID).withRestaurantNumber(RESTAURANT_NUMBER).withMunicipalityId(MUNICIPALITY_ID).withAddress(addressEntity());
+	}
+
+	private void verifyLockedBeforeTheOverlapCheck(final RestaurantNumberEntity restaurantNumber) {
+		final var inOrder = inOrder(restaurantNumberRepository, restaurantNumberAssignmentRepository);
+		inOrder.verify(restaurantNumberRepository).findWithLockById(restaurantNumber.getId());
+		inOrder.verify(restaurantNumberAssignmentRepository).findAllByRestaurantNumber(restaurantNumber);
 	}
 
 	private static AddressEntity addressEntity() {
@@ -159,7 +166,7 @@ class AssignmentServiceTest {
 	void createAssignmentReusesAnExistingLicenseHolder() {
 		final var restaurantNumber = restaurantNumberEntity();
 		final var licenseHolder = LicenseHolderEntity.create().withId("holder-1").withOrgNumber(ORG_NUMBER).withName("Gammalt namn");
-		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
+		when(restaurantNumberRepository.findWithLockByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(addressEntity()));
 		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.of(licenseHolder));
 		when(restaurantNumberAssignmentRepository.save(any())).thenAnswer(invocation -> ((RestaurantNumberAssignmentEntity) invocation.getArgument(0)).withId(ASSIGNMENT_ID));
@@ -180,7 +187,7 @@ class AssignmentServiceTest {
 	@Test
 	void createAssignmentCreatesAnUnknownLicenseHolder() {
 		final var restaurantNumber = restaurantNumberEntity();
-		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
+		when(restaurantNumberRepository.findWithLockByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(addressEntity()));
 		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.empty());
 		when(licenseHolderRepository.save(any())).thenAnswer(invocation -> ((LicenseHolderEntity) invocation.getArgument(0)).withId("holder-new"));
@@ -197,7 +204,7 @@ class AssignmentServiceTest {
 	private RestaurantNumberAssignmentEntity createAlongside(final List<RestaurantNumberAssignmentEntity> existing, final AssignmentCreateRequest request) {
 		final var restaurantNumber = restaurantNumberEntity();
 		existing.forEach(assignment -> assignment.setRestaurantNumber(restaurantNumber));
-		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
+		when(restaurantNumberRepository.findWithLockByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(addressEntity()));
 		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(existing);
 		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.of(LicenseHolderEntity.create().withId("holder-1").withOrgNumber(ORG_NUMBER)));
@@ -207,7 +214,7 @@ class AssignmentServiceTest {
 
 		assertThat(result).isEqualTo(ASSIGNMENT_ID);
 		final var captor = ArgumentCaptor.forClass(RestaurantNumberAssignmentEntity.class);
-		verify(restaurantNumberRepository).findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID);
+		verify(restaurantNumberRepository).findWithLockByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID);
 		verify(addressRepository).findById(ADDRESS_ID);
 		verify(restaurantNumberAssignmentRepository).findAllByRestaurantNumber(restaurantNumber);
 		verify(licenseHolderRepository).findByOrgNumber(ORG_NUMBER);
@@ -219,7 +226,7 @@ class AssignmentServiceTest {
 	private void assertCreateIsRejected(final List<RestaurantNumberAssignmentEntity> existing, final AssignmentCreateRequest request, final String expectedDetail) {
 		final var restaurantNumber = restaurantNumberEntity();
 		existing.forEach(assignment -> assignment.setRestaurantNumber(restaurantNumber));
-		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
+		when(restaurantNumberRepository.findWithLockByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(addressEntity()));
 		when(restaurantNumberAssignmentRepository.findAllByRestaurantNumber(restaurantNumber)).thenReturn(existing);
 
@@ -229,7 +236,7 @@ class AssignmentServiceTest {
 			.isInstanceOf(Problem.class)
 			.hasMessage("Conflict: " + expectedDetail)
 			.extracting("status").isEqualTo(CONFLICT);
-		verify(restaurantNumberRepository).findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID);
+		verify(restaurantNumberRepository).findWithLockByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID);
 		verify(addressRepository).findById(ADDRESS_ID);
 		verify(restaurantNumberAssignmentRepository).findAllByRestaurantNumber(restaurantNumber);
 		verifyNoMoreInteractions(restaurantNumberRepository, addressRepository, restaurantNumberAssignmentRepository);
@@ -384,7 +391,7 @@ class AssignmentServiceTest {
 	@Test
 	void createAssignmentDerivesEndedStatusFromAPastValidTo() {
 		final var restaurantNumber = restaurantNumberEntity();
-		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
+		when(restaurantNumberRepository.findWithLockByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(addressEntity()));
 		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.of(LicenseHolderEntity.create().withId("holder-1")));
 		when(restaurantNumberAssignmentRepository.save(any())).thenAnswer(invocation -> ((RestaurantNumberAssignmentEntity) invocation.getArgument(0)).withId(ASSIGNMENT_ID));
@@ -410,7 +417,7 @@ class AssignmentServiceTest {
 
 	@Test
 	void createAssignmentWithUnknownRestaurantNumber() {
-		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.empty());
+		when(restaurantNumberRepository.findWithLockByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.empty());
 
 		final var assignmentService = assignmentService();
 		final var request = createRequest();
@@ -423,7 +430,7 @@ class AssignmentServiceTest {
 
 	@Test
 	void createAssignmentWithUnknownAddress() {
-		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumberEntity()));
+		when(restaurantNumberRepository.findWithLockByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumberEntity()));
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.empty());
 
 		final var assignmentService = assignmentService();
@@ -437,7 +444,7 @@ class AssignmentServiceTest {
 
 	@Test
 	void createAssignmentWithAddressInAnotherMunicipality() {
-		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumberEntity()));
+		when(restaurantNumberRepository.findWithLockByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumberEntity()));
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(AddressEntity.create().withId(ADDRESS_ID).withMunicipalityId("2260")));
 
 		final var assignmentService = assignmentService();
@@ -603,7 +610,7 @@ class AssignmentServiceTest {
 	void createAssignmentNormalizesTheOrgNumberBeforeLookingUpTheLicenseHolder() {
 		final var restaurantNumber = restaurantNumberEntity();
 		final var licenseHolder = LicenseHolderEntity.create().withId("holder-1").withOrgNumber(ORG_NUMBER);
-		when(restaurantNumberRepository.findByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
+		when(restaurantNumberRepository.findWithLockByIdAndMunicipalityId(RESTAURANT_NUMBER_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(restaurantNumber));
 		when(addressRepository.findById(ADDRESS_ID)).thenReturn(Optional.of(addressEntity()));
 		when(licenseHolderRepository.findByOrgNumber(ORG_NUMBER)).thenReturn(Optional.of(licenseHolder));
 		when(restaurantNumberAssignmentRepository.save(any())).thenAnswer(invocation -> ((RestaurantNumberAssignmentEntity) invocation.getArgument(0)).withId(ASSIGNMENT_ID));
@@ -676,7 +683,8 @@ class AssignmentServiceTest {
 		verify(restaurantNumberAssignmentRepository).findAllByRestaurantNumber(restaurantNumber);
 		verify(restaurantNumberAssignmentRepository, never()).saveAndFlush(any());
 		verifyNoMoreInteractions(restaurantNumberAssignmentRepository);
-		verifyNoInteractions(restaurantNumberRepository, addressRepository, licenseHolderRepository);
+		verifyLockedBeforeTheOverlapCheck(restaurantNumber);
+		verifyNoInteractions(addressRepository, licenseHolderRepository);
 	}
 
 	@Test
@@ -766,7 +774,8 @@ class AssignmentServiceTest {
 		verify(restaurantNumberAssignmentRepository).findAllByRestaurantNumber(restaurantNumber);
 		verify(restaurantNumberAssignmentRepository).saveAndFlush(krogen);
 		verifyNoMoreInteractions(restaurantNumberAssignmentRepository);
-		verifyNoInteractions(restaurantNumberRepository, addressRepository, licenseHolderRepository);
+		verifyLockedBeforeTheOverlapCheck(restaurantNumber);
+		verifyNoInteractions(addressRepository, licenseHolderRepository);
 	}
 
 	@Test
@@ -806,7 +815,8 @@ class AssignmentServiceTest {
 		verify(restaurantNumberAssignmentRepository).findAllByRestaurantNumber(restaurantNumber);
 		verify(restaurantNumberAssignmentRepository).saveAndFlush(krogen);
 		verifyNoMoreInteractions(restaurantNumberAssignmentRepository);
-		verifyNoInteractions(restaurantNumberRepository, addressRepository, licenseHolderRepository);
+		verifyLockedBeforeTheOverlapCheck(restaurantNumber);
+		verifyNoInteractions(addressRepository, licenseHolderRepository);
 	}
 
 	@Test
@@ -837,7 +847,8 @@ class AssignmentServiceTest {
 		verify(restaurantNumberAssignmentRepository).findAllByRestaurantNumber(restaurantNumber);
 		verify(restaurantNumberAssignmentRepository, never()).saveAndFlush(any());
 		verifyNoMoreInteractions(restaurantNumberAssignmentRepository);
-		verifyNoInteractions(restaurantNumberRepository, addressRepository, licenseHolderRepository);
+		verifyLockedBeforeTheOverlapCheck(restaurantNumber);
+		verifyNoInteractions(addressRepository, licenseHolderRepository);
 		assertThat(other.getValidTo()).isNull();
 		assertThat(other.getStatus()).isEqualTo(ACTIVE);
 	}

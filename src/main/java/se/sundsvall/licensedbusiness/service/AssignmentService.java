@@ -80,7 +80,7 @@ public class AssignmentService {
 	public String createAssignment(final String municipalityId, final AssignmentCreateRequest request) {
 		validateValidToNotBeforeValidFrom(request.getValidFrom(), request.getValidTo());
 
-		final var restaurantNumber = restaurantNumberRepository.findByIdAndMunicipalityId(request.getRestaurantNumberId(), municipalityId)
+		final var restaurantNumber = restaurantNumberRepository.findWithLockByIdAndMunicipalityId(request.getRestaurantNumberId(), municipalityId)
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Restaurant number with ID %s not found".formatted(sanitize(request.getRestaurantNumberId()))));
 		final var address = addressRepository.findById(request.getAddressId())
 			.filter(entity -> municipalityId.equals(entity.getMunicipalityId()))
@@ -115,6 +115,7 @@ public class AssignmentService {
 		final var validTo = Optional.ofNullable(request.getValidTo()).orElse(entity.getValidTo());
 		validateValidToNotBeforeValidFrom(entity.getValidFrom(), validTo);
 		if (extendsPeriod(entity.getValidTo(), request.getValidTo())) {
+			restaurantNumberRepository.findWithLockById(entity.getRestaurantNumber().getId());
 			validateNoOverlap(entity.getRestaurantNumber(), entity.getId(), entity.getValidFrom(), validTo);
 		}
 

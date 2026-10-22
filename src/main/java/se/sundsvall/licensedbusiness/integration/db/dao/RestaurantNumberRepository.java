@@ -1,9 +1,11 @@
 package se.sundsvall.licensedbusiness.integration.db.dao;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import se.sundsvall.licensedbusiness.integration.db.model.RestaurantNumberEntity;
@@ -14,7 +16,11 @@ public interface RestaurantNumberRepository extends JpaRepository<RestaurantNumb
 
 	Optional<RestaurantNumberEntity> findByRestaurantNumberAndMunicipalityId(String restaurantNumber, String municipalityId);
 
-	Optional<RestaurantNumberEntity> findByIdAndMunicipalityId(String id, String municipalityId);
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	Optional<RestaurantNumberEntity> findWithLockByIdAndMunicipalityId(String id, String municipalityId);
+
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	Optional<RestaurantNumberEntity> findWithLockById(String id);
 
 	List<RestaurantNumberEntity> findAllByMunicipalityIdAndAddress_IdOrderByRestaurantNumber(String municipalityId, String addressId);
 

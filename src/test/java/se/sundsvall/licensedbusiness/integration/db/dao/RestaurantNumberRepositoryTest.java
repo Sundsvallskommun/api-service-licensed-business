@@ -78,9 +78,15 @@ class RestaurantNumberRepositoryTest {
 	}
 
 	@Test
-	void findByIdAndMunicipalityId() {
-		assertThat(restaurantNumberRepository.findByIdAndMunicipalityId("rn-1", MUNICIPALITY_ID)).isPresent();
-		assertThat(restaurantNumberRepository.findByIdAndMunicipalityId("rn-1", "2260")).isEmpty();
+	void findWithLockByIdAndMunicipalityId() {
+		assertThat(restaurantNumberRepository.findWithLockByIdAndMunicipalityId("rn-1", MUNICIPALITY_ID)).isPresent();
+		assertThat(restaurantNumberRepository.findWithLockByIdAndMunicipalityId("rn-1", "2260")).isEmpty();
+	}
+
+	@Test
+	void findWithLockById() {
+		assertThat(restaurantNumberRepository.findWithLockById("rn-1")).get().extracting("id").isEqualTo("rn-1");
+		assertThat(restaurantNumberRepository.findWithLockById("does-not-exist")).isEmpty();
 	}
 
 	@Test
