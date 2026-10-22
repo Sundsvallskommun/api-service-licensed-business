@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
-import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -17,6 +17,7 @@ import se.sundsvall.licensedbusiness.Application;
 import se.sundsvall.licensedbusiness.api.model.ImportResult;
 import se.sundsvall.licensedbusiness.service.ImportService;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -35,6 +36,7 @@ class ImportResourceTest {
 	private static final String MUNICIPALITY_ID = "2281";
 	private static final String PATH = "/{municipalityId}/import/restaurant-numbers";
 	private static final String CONTENT = "restaurant_number\n22810001\n";
+	private static final MediaType TEXT_CSV = MediaType.parseMediaType("text/csv");
 
 	@Autowired
 	private WebTestClient webTestClient;
@@ -49,16 +51,12 @@ class ImportResourceTest {
 		when(importServiceMock.importRestaurantNumbers(eq(MUNICIPALITY_ID), any(MultipartFile.class))).thenAnswer(invocation -> {
 			final MultipartFile file = invocation.getArgument(1);
 			received.add(file.getOriginalFilename());
-			received.add(new String(file.getBytes()));
+			received.add(file.getContentType());
+			received.add(new String(file.getBytes(), UTF_8));
 			return expected;
 		});
 		final var body = new MultipartBodyBuilder();
-		body.part("file", new ByteArrayResource(CONTENT.getBytes()) {
-			@Override
-			public String getFilename() {
-				return "import.csv";
-			}
-		});
+		body.part("file", CONTENT.getBytes(UTF_8)).filename("import.csv").contentType(TEXT_CSV);
 
 		final var response = webTestClient.post()
 			.uri(builder -> builder.path(PATH).build(Map.of("municipalityId", MUNICIPALITY_ID)))
@@ -72,7 +70,7 @@ class ImportResourceTest {
 			.getResponseBody();
 
 		assertThat(response).isEqualTo(expected);
-		assertThat(received).containsExactly("import.csv", CONTENT);
+		assertThat(received).containsExactly("import.csv", "text/csv", CONTENT);
 		verify(importServiceMock).importRestaurantNumbers(eq(MUNICIPALITY_ID), any(MultipartFile.class));
 		verifyNoMoreInteractions(importServiceMock);
 	}
