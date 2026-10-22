@@ -2,7 +2,6 @@ package se.sundsvall.licensedbusiness.service.mapper;
 
 import java.util.List;
 import java.util.Optional;
-import org.springframework.stereotype.Component;
 import se.sundsvall.licensedbusiness.api.model.AddressRestaurantNumber;
 import se.sundsvall.licensedbusiness.api.model.RestaurantNumber;
 import se.sundsvall.licensedbusiness.integration.db.model.RestaurantNumberAssignmentEntity;
@@ -10,10 +9,11 @@ import se.sundsvall.licensedbusiness.integration.db.model.RestaurantNumberEntity
 
 import static java.util.Collections.emptyList;
 
-@Component
-public class RestaurantNumberMapper {
+public final class RestaurantNumberMapper {
 
-	public RestaurantNumber toRestaurantNumber(final RestaurantNumberEntity entity) {
+	private RestaurantNumberMapper() {}
+
+	public static RestaurantNumber toRestaurantNumber(final RestaurantNumberEntity entity) {
 		return Optional.ofNullable(entity)
 			.map(e -> RestaurantNumber.create()
 				.withId(e.getId())
@@ -24,7 +24,7 @@ public class RestaurantNumberMapper {
 			.orElse(null);
 	}
 
-	public AddressRestaurantNumber toAddressRestaurantNumber(final RestaurantNumberEntity entity, final RestaurantNumberAssignmentEntity latestAssignment, final String status) {
+	public static AddressRestaurantNumber toAddressRestaurantNumber(final RestaurantNumberEntity entity, final RestaurantNumberAssignmentEntity latestAssignment, final String status) {
 		final var latest = Optional.ofNullable(latestAssignment);
 
 		return AddressRestaurantNumber.create()
@@ -39,9 +39,9 @@ public class RestaurantNumberMapper {
 			.withCreated(entity.getCreated());
 	}
 
-	public List<RestaurantNumber> toRestaurantNumbers(final List<RestaurantNumberEntity> entities) {
+	public static List<RestaurantNumber> toRestaurantNumbers(final List<RestaurantNumberEntity> entities) {
 		return Optional.ofNullable(entities).orElse(emptyList()).stream()
-			.map(this::toRestaurantNumber)
+			.map(RestaurantNumberMapper::toRestaurantNumber)
 			.toList();
 	}
 }

@@ -20,10 +20,6 @@ import se.sundsvall.licensedbusiness.integration.db.model.AddressEntity;
 import se.sundsvall.licensedbusiness.integration.db.model.LicenseHolderEntity;
 import se.sundsvall.licensedbusiness.integration.db.model.RestaurantNumberAssignmentEntity;
 import se.sundsvall.licensedbusiness.integration.db.model.RestaurantNumberEntity;
-import se.sundsvall.licensedbusiness.service.mapper.AddressMapper;
-import se.sundsvall.licensedbusiness.service.mapper.AssignmentMapper;
-import se.sundsvall.licensedbusiness.service.mapper.LicenseHolderMapper;
-import se.sundsvall.licensedbusiness.service.mapper.RestaurantNumberMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -62,10 +58,8 @@ class AssignmentServiceTest {
 	@Mock
 	private LicenseHolderRepository licenseHolderRepository;
 
-	private final AssignmentMapper assignmentMapper = new AssignmentMapper(new RestaurantNumberMapper(), new AddressMapper(), new LicenseHolderMapper());
-
 	private AssignmentService assignmentService() {
-		return new AssignmentService(restaurantNumberRepository, restaurantNumberAssignmentRepository, addressRepository, licenseHolderRepository, assignmentMapper);
+		return new AssignmentService(restaurantNumberRepository, restaurantNumberAssignmentRepository, addressRepository, licenseHolderRepository);
 	}
 
 	private static RestaurantNumberEntity restaurantNumberEntity() {
