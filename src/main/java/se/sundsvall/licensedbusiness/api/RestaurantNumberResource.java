@@ -83,10 +83,12 @@ class RestaurantNumberResource {
 		return ResponseEntity.ok(assignmentService.getLatestAssignment(municipalityId, restaurantNumber));
 	}
 
-	@Operation(summary = "Get the active assignments for a restaurant number, including their address and license holder, oldest validFrom first", responses = {
-		@ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = Assignment.class)))),
-		@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))
-	})
+	@Operation(summary = "Get the active assignments for a restaurant number, including their address and license holder, oldest validFrom first",
+		description = "Active means status ACTIVE, that is not ended. Assignments that have not started yet are included.",
+		responses = {
+			@ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = Assignment.class)))),
+			@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))
+		})
 	@GetMapping("/{restaurantNumber}/assignments")
 	ResponseEntity<List<Assignment>> getActiveAssignments(
 		@Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @PathVariable @ValidMunicipalityId final String municipalityId,

@@ -352,8 +352,9 @@ paths:
       tags:
       - Assignment Resources
       summary: Update an assignment
-      description: "A new validTo must not make the period overlap any other assignment\
-        \ on the restaurant number, ended ones included."
+      description: "A validTo that moves the end of the period later must not make\
+        \ the period overlap any other assignment on the restaurant number, ended\
+        \ ones included. An earlier or unchanged validTo is not checked."
       operationId: updateAssignment
       parameters:
       - name: municipalityId
@@ -390,8 +391,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/Problem"
         "409":
-          description: "Conflict, the new validTo makes the period overlap another\
-            \ assignment on the restaurant number"
+          description: "Conflict, either the new validTo makes the period overlap\
+            \ another assignment on the restaurant number, or the assignment was updated\
+            \ by someone else and must be reloaded before trying again"
           content:
             application/problem+json:
               schema:
@@ -472,6 +474,8 @@ paths:
       - Restaurant Number Resources
       summary: "Get the active assignments for a restaurant number, including their\
         \ address and license holder, oldest validFrom first"
+      description: "Active means status ACTIVE, that is not ended. Assignments that\
+        \ have not started yet are included."
       operationId: getActiveAssignments
       parameters:
       - name: municipalityId

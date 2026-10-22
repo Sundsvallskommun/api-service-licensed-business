@@ -80,12 +80,12 @@ class AssignmentResource {
 	}
 
 	@Operation(summary = "Update an assignment",
-		description = "A new validTo must not make the period overlap any other assignment on the restaurant number, ended ones included.",
+		description = "A validTo that moves the end of the period later must not make the period overlap any other assignment on the restaurant number, ended ones included. An earlier or unchanged validTo is not checked.",
 		responses = {
 			@ApiResponse(responseCode = "200", description = "OK", useReturnTypeSchema = true),
 			@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class))),
 			@ApiResponse(responseCode = "409",
-				description = "Conflict, the new validTo makes the period overlap another assignment on the restaurant number",
+				description = "Conflict, either the new validTo makes the period overlap another assignment on the restaurant number, or the assignment was updated by someone else and must be reloaded before trying again",
 				content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))
 		})
 	@PatchMapping("/{assignmentId}")
