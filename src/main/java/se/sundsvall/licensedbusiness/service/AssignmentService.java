@@ -24,7 +24,7 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static se.sundsvall.licensedbusiness.integration.db.model.enums.AssignmentStatus.ACTIVE;
-import static se.sundsvall.licensedbusiness.service.AssignmentStatusResolver.resolveStatus;
+import static se.sundsvall.licensedbusiness.integration.db.model.enums.AssignmentStatus.fromValidTo;
 import static se.sundsvall.licensedbusiness.service.TextSanitizer.sanitize;
 
 @Service
@@ -100,7 +100,7 @@ public class AssignmentService {
 			.withPremisesName(request.getPremisesName())
 			.withValidFrom(request.getValidFrom())
 			.withValidTo(request.getValidTo())
-			.withStatus(resolveStatus(request.getValidTo())))
+			.withStatus(fromValidTo(request.getValidTo())))
 			.getId();
 	}
 
@@ -119,7 +119,7 @@ public class AssignmentService {
 		entity.setValidTo(validTo);
 		Optional.ofNullable(request.getPremisesName()).ifPresent(entity::setPremisesName);
 		Optional.ofNullable(request.getHolderName()).ifPresent(entity::setHolderName);
-		entity.setStatus(resolveStatus(validTo));
+		entity.setStatus(fromValidTo(validTo));
 
 		try {
 			return AssignmentMapper.toAssignment(restaurantNumberAssignmentRepository.saveAndFlush(entity));
