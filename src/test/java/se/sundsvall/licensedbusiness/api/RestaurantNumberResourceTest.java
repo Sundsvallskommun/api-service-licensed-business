@@ -1,10 +1,15 @@
 package se.sundsvall.licensedbusiness.api;
 
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import se.sundsvall.licensedbusiness.Application;
 import se.sundsvall.licensedbusiness.api.model.Assignment;
 import se.sundsvall.licensedbusiness.api.model.RestaurantNumber;
 import se.sundsvall.licensedbusiness.service.AssignmentService;
@@ -15,85 +20,125 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import static org.springframework.http.HttpStatus.CREATED;
-import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest(classes = Application.class, webEnvironment = RANDOM_PORT)
+@ActiveProfiles("junit")
+@AutoConfigureWebTestClient
 class RestaurantNumberResourceTest {
 
 	private static final String MUNICIPALITY_ID = "2281";
+	private static final String PATH = "/{municipalityId}/restaurant-numbers";
+	private static final String AVAILABLE_PATH = "/{municipalityId}/restaurant-numbers/available";
+	private static final String RESTAURANT_NUMBER_PATH = "/{municipalityId}/restaurant-numbers/{restaurantNumber}";
+	private static final String ASSIGNMENT_PATH = "/{municipalityId}/restaurant-numbers/{restaurantNumber}/assignment";
+	private static final String ASSIGNMENTS_PATH = "/{municipalityId}/restaurant-numbers/{restaurantNumber}/assignments";
 	private static final String ADDRESS_ID = "123e4567-e89b-12d3-a456-426614174000";
 	private static final String RESTAURANT_NUMBER = "22813670";
 
-	@Mock
-	private RestaurantNumberService restaurantNumberService;
+	@Autowired
+	private WebTestClient webTestClient;
 
-	@Mock
-	private AssignmentService assignmentService;
+	@MockitoBean
+	private RestaurantNumberService restaurantNumberServiceMock;
+
+	@MockitoBean
+	private AssignmentService assignmentServiceMock;
 
 	@Test
 	void getAvailableRestaurantNumbers() {
 		final var expected = List.of(RestaurantNumber.create().withId("number-1").withNumber("1001").withMunicipalityId(MUNICIPALITY_ID));
-		when(restaurantNumberService.getAvailableRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID)).thenReturn(expected);
+		when(restaurantNumberServiceMock.getAvailableRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID)).thenReturn(expected);
 
-		final var restaurantNumberResource = new RestaurantNumberResource(restaurantNumberService, assignmentService);
-		final var response = restaurantNumberResource.getAvailableRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID);
+		final var response = webTestClient.get()
+			.uri(builder -> builder.path(AVAILABLE_PATH).queryParam("addressId", ADDRESS_ID).build(Map.of("municipalityId", MUNICIPALITY_ID)))
+			.exchange()
+			.expectStatus().isOk()
+			.expectHeader().contentType(APPLICATION_JSON)
+			.expectBodyList(RestaurantNumber.class)
+			.returnResult()
+			.getResponseBody();
 
-		assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
-		assertThat(response.getBody()).isEqualTo(expected);
-		verify(restaurantNumberService).getAvailableRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID);
+		assertThat(response).isEqualTo(expected);
+		verify(restaurantNumberServiceMock).getAvailableRestaurantNumbers(MUNICIPALITY_ID, ADDRESS_ID);
+		verifyNoMoreInteractions(restaurantNumberServiceMock);
+		verifyNoInteractions(assignmentServiceMock);
 	}
 
 	@Test
 	void getRestaurantNumber() {
 		final var expected = RestaurantNumber.create().withId("number-1").withNumber(RESTAURANT_NUMBER);
-		when(restaurantNumberService.getRestaurantNumber(MUNICIPALITY_ID, RESTAURANT_NUMBER)).thenReturn(expected);
+		when(restaurantNumberServiceMock.getRestaurantNumber(MUNICIPALITY_ID, RESTAURANT_NUMBER)).thenReturn(expected);
 
-		final var restaurantNumberResource = new RestaurantNumberResource(restaurantNumberService, assignmentService);
-		final var response = restaurantNumberResource.getRestaurantNumber(MUNICIPALITY_ID, RESTAURANT_NUMBER);
+		final var response = webTestClient.get()
+			.uri(builder -> builder.path(RESTAURANT_NUMBER_PATH).build(Map.of("municipalityId", MUNICIPALITY_ID, "restaurantNumber", RESTAURANT_NUMBER)))
+			.exchange()
+			.expectStatus().isOk()
+			.expectHeader().contentType(APPLICATION_JSON)
+			.expectBody(RestaurantNumber.class)
+			.returnResult()
+			.getResponseBody();
 
-		assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
-		assertThat(response.getBody()).isEqualTo(expected);
-		verify(restaurantNumberService).getRestaurantNumber(MUNICIPALITY_ID, RESTAURANT_NUMBER);
+		assertThat(response).isEqualTo(expected);
+		verify(restaurantNumberServiceMock).getRestaurantNumber(MUNICIPALITY_ID, RESTAURANT_NUMBER);
+		verifyNoMoreInteractions(restaurantNumberServiceMock);
+		verifyNoInteractions(assignmentServiceMock);
 	}
 
 	@Test
 	void getLatestAssignment() {
 		final var expected = Assignment.create().withId("assignment-1");
-		when(assignmentService.getLatestAssignment(MUNICIPALITY_ID, RESTAURANT_NUMBER)).thenReturn(expected);
+		when(assignmentServiceMock.getLatestAssignment(MUNICIPALITY_ID, RESTAURANT_NUMBER)).thenReturn(expected);
 
-		final var restaurantNumberResource = new RestaurantNumberResource(restaurantNumberService, assignmentService);
-		final var response = restaurantNumberResource.getLatestAssignment(MUNICIPALITY_ID, RESTAURANT_NUMBER);
+		final var response = webTestClient.get()
+			.uri(builder -> builder.path(ASSIGNMENT_PATH).build(Map.of("municipalityId", MUNICIPALITY_ID, "restaurantNumber", RESTAURANT_NUMBER)))
+			.exchange()
+			.expectStatus().isOk()
+			.expectHeader().contentType(APPLICATION_JSON)
+			.expectBody(Assignment.class)
+			.returnResult()
+			.getResponseBody();
 
-		assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
-		assertThat(response.getBody()).isEqualTo(expected);
-		verify(assignmentService).getLatestAssignment(MUNICIPALITY_ID, RESTAURANT_NUMBER);
+		assertThat(response).isEqualTo(expected);
+		verify(assignmentServiceMock).getLatestAssignment(MUNICIPALITY_ID, RESTAURANT_NUMBER);
+		verifyNoMoreInteractions(assignmentServiceMock);
+		verifyNoInteractions(restaurantNumberServiceMock);
 	}
 
 	@Test
 	void getActiveAssignments() {
 		final var expected = List.of(Assignment.create().withId("assignment-1"), Assignment.create().withId("assignment-2"));
-		when(assignmentService.getActiveAssignments(MUNICIPALITY_ID, RESTAURANT_NUMBER)).thenReturn(expected);
+		when(assignmentServiceMock.getActiveAssignments(MUNICIPALITY_ID, RESTAURANT_NUMBER)).thenReturn(expected);
 
-		final var restaurantNumberResource = new RestaurantNumberResource(restaurantNumberService, assignmentService);
-		final var response = restaurantNumberResource.getActiveAssignments(MUNICIPALITY_ID, RESTAURANT_NUMBER);
+		final var response = webTestClient.get()
+			.uri(builder -> builder.path(ASSIGNMENTS_PATH).build(Map.of("municipalityId", MUNICIPALITY_ID, "restaurantNumber", RESTAURANT_NUMBER)))
+			.exchange()
+			.expectStatus().isOk()
+			.expectHeader().contentType(APPLICATION_JSON)
+			.expectBodyList(Assignment.class)
+			.returnResult()
+			.getResponseBody();
 
-		assertThat(response.getStatusCode()).isEqualTo(OK);
-		assertThat(response.getBody()).isEqualTo(expected);
-		verify(assignmentService).getActiveAssignments(MUNICIPALITY_ID, RESTAURANT_NUMBER);
-		verifyNoMoreInteractions(assignmentService);
-		verifyNoInteractions(restaurantNumberService);
+		assertThat(response).isEqualTo(expected);
+		verify(assignmentServiceMock).getActiveAssignments(MUNICIPALITY_ID, RESTAURANT_NUMBER);
+		verifyNoMoreInteractions(assignmentServiceMock);
+		verifyNoInteractions(restaurantNumberServiceMock);
 	}
 
 	@Test
 	void createRestaurantNumber() {
-		when(restaurantNumberService.createRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID)).thenReturn(RESTAURANT_NUMBER);
+		when(restaurantNumberServiceMock.createRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID)).thenReturn(RESTAURANT_NUMBER);
 
-		final var restaurantNumberResource = new RestaurantNumberResource(restaurantNumberService, assignmentService);
-		final var response = restaurantNumberResource.createRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID);
+		webTestClient.post()
+			.uri(builder -> builder.path(PATH).queryParam("addressId", ADDRESS_ID).build(Map.of("municipalityId", MUNICIPALITY_ID)))
+			.exchange()
+			.expectStatus().isCreated()
+			.expectHeader().location("/2281/restaurant-numbers/" + RESTAURANT_NUMBER)
+			.expectBody().isEmpty();
 
-		assertThat(response.getStatusCode()).isEqualTo(CREATED);
-		assertThat(response.getHeaders().getLocation()).hasToString("/2281/restaurant-numbers/" + RESTAURANT_NUMBER);
-		verify(restaurantNumberService).createRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID);
+		verify(restaurantNumberServiceMock).createRestaurantNumber(MUNICIPALITY_ID, ADDRESS_ID);
+		verifyNoMoreInteractions(restaurantNumberServiceMock);
+		verifyNoInteractions(assignmentServiceMock);
 	}
 }

@@ -11,8 +11,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class RestaurantNumberMapperTest {
 
-	private final RestaurantNumberMapper restaurantNumberMapper = new RestaurantNumberMapper();
-
 	@Test
 	void toRestaurantNumber() {
 		final var created = OffsetDateTime.now();
@@ -23,7 +21,7 @@ class RestaurantNumberMapperTest {
 			.withReported(false)
 			.withCreated(created);
 
-		final var restaurantNumber = restaurantNumberMapper.toRestaurantNumber(entity);
+		final var restaurantNumber = RestaurantNumberMapper.toRestaurantNumber(entity);
 
 		assertThat(restaurantNumber.getId()).isEqualTo("number-1");
 		assertThat(restaurantNumber.getNumber()).isEqualTo("1001");
@@ -34,7 +32,7 @@ class RestaurantNumberMapperTest {
 
 	@Test
 	void toRestaurantNumberWithNullEntity() {
-		assertThat(restaurantNumberMapper.toRestaurantNumber(null)).isNull();
+		assertThat(RestaurantNumberMapper.toRestaurantNumber(null)).isNull();
 	}
 
 	@Test
@@ -51,7 +49,7 @@ class RestaurantNumberMapperTest {
 			.withValidFrom(LocalDate.of(2026, 1, 1))
 			.withValidTo(LocalDate.of(2026, 12, 31));
 
-		final var result = restaurantNumberMapper.toAddressRestaurantNumber(entity, latestAssignment, "ACTIVE");
+		final var result = RestaurantNumberMapper.toAddressRestaurantNumber(entity, latestAssignment, "ACTIVE");
 
 		assertThat(result.getId()).isEqualTo("number-1");
 		assertThat(result.getNumber()).isEqualTo("22810001");
@@ -68,7 +66,7 @@ class RestaurantNumberMapperTest {
 	void toAddressRestaurantNumberWithoutAssignment() {
 		final var entity = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("22810001");
 
-		final var result = restaurantNumberMapper.toAddressRestaurantNumber(entity, null, "AVAILABLE");
+		final var result = RestaurantNumberMapper.toAddressRestaurantNumber(entity, null, "AVAILABLE");
 
 		assertThat(result.getId()).isEqualTo("number-1");
 		assertThat(result.getStatus()).isEqualTo("AVAILABLE");
@@ -82,7 +80,7 @@ class RestaurantNumberMapperTest {
 		final var entity1 = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("1001");
 		final var entity2 = RestaurantNumberEntity.create().withId("number-2").withRestaurantNumber("1002");
 
-		final var restaurantNumbers = restaurantNumberMapper.toRestaurantNumbers(List.of(entity1, entity2));
+		final var restaurantNumbers = RestaurantNumberMapper.toRestaurantNumbers(List.of(entity1, entity2));
 
 		assertThat(restaurantNumbers).hasSize(2);
 		assertThat(restaurantNumbers.get(0).getId()).isEqualTo("number-1");
@@ -91,6 +89,6 @@ class RestaurantNumberMapperTest {
 
 	@Test
 	void toRestaurantNumbersWithNullList() {
-		assertThat(restaurantNumberMapper.toRestaurantNumbers(null)).isEmpty();
+		assertThat(RestaurantNumberMapper.toRestaurantNumbers(null)).isEmpty();
 	}
 }

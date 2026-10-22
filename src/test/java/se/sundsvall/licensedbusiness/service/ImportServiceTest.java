@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
@@ -44,6 +45,9 @@ class ImportServiceTest {
 	@Mock
 	private RestaurantNumberAssignmentRepository restaurantNumberAssignmentRepository;
 
+	@InjectMocks
+	private ImportService importService;
+
 	@Test
 	void importRestaurantNumbers() {
 		final var savedStorgatan = AddressEntity.create().withId("address-1").withStreetAddress("Storgatan 1").withPostalCode("852 30");
@@ -70,7 +74,6 @@ class ImportServiceTest {
 			""";
 		final var file = new MockMultipartFile("file", "import.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8));
 
-		final var importService = new ImportService(addressRepository, licenseHolderRepository, restaurantNumberRepository, restaurantNumberAssignmentRepository);
 		final var result = importService.importRestaurantNumbers(MUNICIPALITY_ID, file);
 
 		assertThat(result.rowsProcessed()).isEqualTo(2);
@@ -110,7 +113,6 @@ class ImportServiceTest {
 			""";
 		final var file = new MockMultipartFile("file", "import.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8));
 
-		final var importService = new ImportService(addressRepository, licenseHolderRepository, restaurantNumberRepository, restaurantNumberAssignmentRepository);
 		final var result = importService.importRestaurantNumbers(MUNICIPALITY_ID, file);
 
 		assertThat(result.restaurantNumbersCreated()).isEqualTo(1);
@@ -148,7 +150,6 @@ class ImportServiceTest {
 			""";
 		final var file = new MockMultipartFile("file", "import.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8));
 
-		final var importService = new ImportService(addressRepository, licenseHolderRepository, restaurantNumberRepository, restaurantNumberAssignmentRepository);
 		final var result = importService.importRestaurantNumbers(MUNICIPALITY_ID, file);
 
 		assertThat(result.errors()).isEmpty();
@@ -179,7 +180,6 @@ class ImportServiceTest {
 			""";
 		final var file = new MockMultipartFile("file", "import.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8));
 
-		final var importService = new ImportService(addressRepository, licenseHolderRepository, restaurantNumberRepository, restaurantNumberAssignmentRepository);
 		final var result = importService.importRestaurantNumbers(MUNICIPALITY_ID, file);
 
 		assertThat(result.errors()).isEmpty();
@@ -205,7 +205,6 @@ class ImportServiceTest {
 			""";
 		final var file = new MockMultipartFile("file", "import.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8));
 
-		final var importService = new ImportService(addressRepository, licenseHolderRepository, restaurantNumberRepository, restaurantNumberAssignmentRepository);
 		final var result = importService.importRestaurantNumbers(MUNICIPALITY_ID, file);
 
 		assertThat(result.addressesCreated()).isZero();
@@ -222,8 +221,6 @@ class ImportServiceTest {
 			Storgatan 2,852 31,Sundsvall,1002,5566112233,Bolag A,Pub C,not-a-date,,ACTIVE
 			""";
 		final var file = new MockMultipartFile("file", "import.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8));
-
-		final var importService = new ImportService(addressRepository, licenseHolderRepository, restaurantNumberRepository, restaurantNumberAssignmentRepository);
 
 		assertThatThrownBy(() -> importService.importRestaurantNumbers(MUNICIPALITY_ID, file))
 			.isInstanceOf(Problem.class)
@@ -248,7 +245,6 @@ class ImportServiceTest {
 			+ "Storgatan 1,852 30,Sundsvall,1001,5566112233,Bolag A,Pub A,2020-01-01,2021-01-01,ENDED\n";
 		final var file = new MockMultipartFile("file", "import.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8));
 
-		final var importService = new ImportService(addressRepository, licenseHolderRepository, restaurantNumberRepository, restaurantNumberAssignmentRepository);
 		final var result = importService.importRestaurantNumbers(MUNICIPALITY_ID, file);
 
 		assertThat(result.errors()).isEmpty();
@@ -263,8 +259,6 @@ class ImportServiceTest {
 				throw new IOException("broken stream");
 			}
 		};
-
-		final var importService = new ImportService(addressRepository, licenseHolderRepository, restaurantNumberRepository, restaurantNumberAssignmentRepository);
 
 		assertThatThrownBy(() -> importService.importRestaurantNumbers(MUNICIPALITY_ID, file))
 			.isInstanceOf(Problem.class)

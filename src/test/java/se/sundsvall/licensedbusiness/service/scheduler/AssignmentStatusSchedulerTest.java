@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import se.sundsvall.licensedbusiness.integration.db.dao.RestaurantNumberAssignmentRepository;
@@ -23,6 +24,9 @@ class AssignmentStatusSchedulerTest {
 	@Mock
 	private RestaurantNumberAssignmentRepository restaurantNumberAssignmentRepository;
 
+	@InjectMocks
+	private AssignmentStatusScheduler scheduler;
+
 	@Test
 	void updateExpiredAssignmentStatus() {
 		final var expired1 = RestaurantNumberAssignmentEntity.create().withId("1").withStatus(AssignmentStatus.ACTIVE).withValidTo(LocalDate.now().minusDays(1));
@@ -31,7 +35,6 @@ class AssignmentStatusSchedulerTest {
 		when(restaurantNumberAssignmentRepository.findAllByStatusAndValidToBefore(eq(AssignmentStatus.ACTIVE), any()))
 			.thenReturn(List.of(expired1, expired2));
 
-		final var scheduler = new AssignmentStatusScheduler(restaurantNumberAssignmentRepository);
 		scheduler.updateExpiredAssignmentStatus();
 
 		assertThat(List.of(expired1, expired2)).allSatisfy(entity -> assertThat(entity.getStatus()).isEqualTo(AssignmentStatus.ENDED));
@@ -44,7 +47,6 @@ class AssignmentStatusSchedulerTest {
 		when(restaurantNumberAssignmentRepository.findAllByStatusAndValidToBefore(eq(AssignmentStatus.ACTIVE), any()))
 			.thenReturn(List.of());
 
-		final var scheduler = new AssignmentStatusScheduler(restaurantNumberAssignmentRepository);
 		scheduler.updateExpiredAssignmentStatus();
 
 		verify(restaurantNumberAssignmentRepository).findAllByStatusAndValidToBefore(eq(AssignmentStatus.ACTIVE), any());

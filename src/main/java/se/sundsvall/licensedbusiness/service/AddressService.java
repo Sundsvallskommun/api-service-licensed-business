@@ -30,11 +30,8 @@ public class AddressService {
 
 	private final AddressRepository addressRepository;
 
-	private final AddressMapper addressMapper;
-
-	public AddressService(final AddressRepository addressRepository, final AddressMapper addressMapper) {
+	public AddressService(final AddressRepository addressRepository) {
 		this.addressRepository = addressRepository;
-		this.addressMapper = addressMapper;
 	}
 
 	@Transactional
@@ -65,14 +62,14 @@ public class AddressService {
 		final var postalCode = normalizePostalCode(lookupParameters.getPostalCode());
 
 		return findExisting(municipalityId, streetAddress, postalCode)
-			.map(addressMapper::toAddress)
+			.map(AddressMapper::toAddress)
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Address %s, %s not found".formatted(sanitize(streetAddress), sanitize(postalCode))));
 	}
 
 	public Address getAddress(final String municipalityId, final String addressId) {
 		return addressRepository.findById(addressId)
 			.filter(entity -> municipalityId.equals(entity.getMunicipalityId()))
-			.map(addressMapper::toAddress)
+			.map(AddressMapper::toAddress)
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Address %s not found".formatted(sanitize(addressId))));
 	}
 
@@ -97,6 +94,6 @@ public class AddressService {
 	private Addresses toAddresses(final Page<AddressEntity> page) {
 		return Addresses.create()
 			.withMetaData(PagingAndSortingMetaData.create().withPageData(page))
-			.withContent(addressMapper.toAddresses(page.getContent()));
+			.withContent(AddressMapper.toAddresses(page.getContent()));
 	}
 }

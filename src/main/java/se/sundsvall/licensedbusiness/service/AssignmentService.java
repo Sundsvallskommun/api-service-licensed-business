@@ -24,7 +24,7 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static se.sundsvall.licensedbusiness.integration.db.model.enums.AssignmentStatus.ACTIVE;
-import static se.sundsvall.licensedbusiness.service.AssignmentStatusResolver.resolveStatus;
+import static se.sundsvall.licensedbusiness.integration.db.model.enums.AssignmentStatus.fromValidTo;
 import static se.sundsvall.licensedbusiness.service.TextSanitizer.sanitize;
 
 @Service
@@ -38,15 +38,12 @@ public class AssignmentService {
 
 	private final LicenseHolderRepository licenseHolderRepository;
 
-	private final AssignmentMapper assignmentMapper;
-
 	public AssignmentService(final RestaurantNumberRepository restaurantNumberRepository, final RestaurantNumberAssignmentRepository restaurantNumberAssignmentRepository,
-		final AddressRepository addressRepository, final LicenseHolderRepository licenseHolderRepository, final AssignmentMapper assignmentMapper) {
+		final AddressRepository addressRepository, final LicenseHolderRepository licenseHolderRepository) {
 		this.restaurantNumberRepository = restaurantNumberRepository;
 		this.restaurantNumberAssignmentRepository = restaurantNumberAssignmentRepository;
 		this.addressRepository = addressRepository;
 		this.licenseHolderRepository = licenseHolderRepository;
-		this.assignmentMapper = assignmentMapper;
 	}
 
 	@Transactional(readOnly = true)
@@ -55,7 +52,7 @@ public class AssignmentService {
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Restaurant number %s not found".formatted(sanitize(restaurantNumber))));
 
 		return restaurantNumberAssignmentRepository.findFirstByRestaurantNumberOrderByValidFromDescCreatedDesc(restaurantNumberEntity)
-			.map(assignmentMapper::toAssignment)
+			.map(AssignmentMapper::toAssignment)
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "No assignment found for restaurant number %s".formatted(sanitize(restaurantNumber))));
 	}
 
@@ -65,14 +62,14 @@ public class AssignmentService {
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Restaurant number %s not found".formatted(sanitize(restaurantNumber))));
 
 		return restaurantNumberAssignmentRepository.findAllByRestaurantNumberAndStatusOrderByValidFromAscCreatedAsc(restaurantNumberEntity, ACTIVE).stream()
-			.map(assignmentMapper::toAssignment)
+			.map(AssignmentMapper::toAssignment)
 			.toList();
 	}
 
 	@Transactional(readOnly = true)
 	public Assignment getAssignment(final String municipalityId, final String assignmentId) {
 		return restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(assignmentId, municipalityId)
-			.map(assignmentMapper::toAssignment)
+			.map(AssignmentMapper::toAssignment)
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Assignment %s not found".formatted(sanitize(assignmentId))));
 	}
 
@@ -103,7 +100,7 @@ public class AssignmentService {
 			.withPremisesName(request.getPremisesName())
 			.withValidFrom(request.getValidFrom())
 			.withValidTo(request.getValidTo())
-			.withStatus(resolveStatus(request.getValidTo())))
+			.withStatus(fromValidTo(request.getValidTo())))
 			.getId();
 	}
 
@@ -122,10 +119,10 @@ public class AssignmentService {
 		entity.setValidTo(validTo);
 		Optional.ofNullable(request.getPremisesName()).ifPresent(entity::setPremisesName);
 		Optional.ofNullable(request.getHolderName()).ifPresent(entity::setHolderName);
-		entity.setStatus(resolveStatus(validTo));
+		entity.setStatus(fromValidTo(validTo));
 
 		try {
-			return assignmentMapper.toAssignment(restaurantNumberAssignmentRepository.saveAndFlush(entity));
+			return AssignmentMapper.toAssignment(restaurantNumberAssignmentRepository.saveAndFlush(entity));
 		} catch (final OptimisticLockingFailureException e) {
 			throw Problem.valueOf(CONFLICT, "Assignment %s was updated by someone else, please reload it and try again".formatted(sanitize(assignmentId)));
 		}

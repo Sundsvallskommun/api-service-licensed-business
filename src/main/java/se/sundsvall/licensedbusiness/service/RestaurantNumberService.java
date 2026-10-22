@@ -52,19 +52,16 @@ public class RestaurantNumberService {
 
 	private final AddressRepository addressRepository;
 
-	private final RestaurantNumberMapper restaurantNumberMapper;
-
 	public RestaurantNumberService(final RestaurantNumberRepository restaurantNumberRepository, final RestaurantNumberAssignmentRepository restaurantNumberAssignmentRepository,
-		final AddressRepository addressRepository, final RestaurantNumberMapper restaurantNumberMapper) {
+		final AddressRepository addressRepository) {
 		this.restaurantNumberRepository = restaurantNumberRepository;
 		this.restaurantNumberAssignmentRepository = restaurantNumberAssignmentRepository;
 		this.addressRepository = addressRepository;
-		this.restaurantNumberMapper = restaurantNumberMapper;
 	}
 
 	public RestaurantNumber getRestaurantNumber(final String municipalityId, final String restaurantNumber) {
 		return restaurantNumberRepository.findByRestaurantNumberAndMunicipalityId(restaurantNumber, municipalityId)
-			.map(restaurantNumberMapper::toRestaurantNumber)
+			.map(RestaurantNumberMapper::toRestaurantNumber)
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Restaurant number %s not found".formatted(sanitize(restaurantNumber))));
 	}
 
@@ -122,7 +119,7 @@ public class RestaurantNumberService {
 		}
 
 		final var entities = restaurantNumberRepository.findAvailableByMunicipalityIdAndAddressId(municipalityId, addressId);
-		return restaurantNumberMapper.toRestaurantNumbers(entities);
+		return RestaurantNumberMapper.toRestaurantNumbers(entities);
 	}
 
 	@Transactional(readOnly = true)
@@ -145,7 +142,7 @@ public class RestaurantNumberService {
 		final var shownAssignment = assignments.stream().max(shownFirst).orElse(null);
 		final var status = assignments.stream().anyMatch(assignment -> assignment.getStatus() == ACTIVE) ? STATUS_ACTIVE : STATUS_AVAILABLE;
 
-		return restaurantNumberMapper.toAddressRestaurantNumber(restaurantNumber, shownAssignment, status);
+		return RestaurantNumberMapper.toAddressRestaurantNumber(restaurantNumber, shownAssignment, status);
 	}
 
 	private static Comparator<RestaurantNumberAssignmentEntity> shownFirst(final LocalDate today) {

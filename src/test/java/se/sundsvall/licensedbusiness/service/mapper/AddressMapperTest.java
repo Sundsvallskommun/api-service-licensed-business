@@ -9,8 +9,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class AddressMapperTest {
 
-	private final AddressMapper addressMapper = new AddressMapper();
-
 	@Test
 	void toAddress() {
 		final var created = OffsetDateTime.now();
@@ -22,7 +20,7 @@ class AddressMapperTest {
 			.withMunicipalityId("2281")
 			.withCreated(created);
 
-		final var address = addressMapper.toAddress(entity);
+		final var address = AddressMapper.toAddress(entity);
 
 		assertThat(address.getId()).isEqualTo("address-1");
 		assertThat(address.getStreetAddress()).isEqualTo("Storgatan 1");
@@ -34,7 +32,7 @@ class AddressMapperTest {
 
 	@Test
 	void toAddressWithNullEntity() {
-		assertThat(addressMapper.toAddress(null)).isNull();
+		assertThat(AddressMapper.toAddress(null)).isNull();
 	}
 
 	@Test
@@ -42,7 +40,7 @@ class AddressMapperTest {
 		final var entity1 = AddressEntity.create().withId("address-1").withStreetAddress("Storgatan 1");
 		final var entity2 = AddressEntity.create().withId("address-2").withStreetAddress("Kajplats 1");
 
-		final var addresses = addressMapper.toAddresses(List.of(entity1, entity2));
+		final var addresses = AddressMapper.toAddresses(List.of(entity1, entity2));
 
 		assertThat(addresses).hasSize(2);
 		assertThat(addresses.get(0).getId()).isEqualTo("address-1");
@@ -51,6 +49,6 @@ class AddressMapperTest {
 
 	@Test
 	void toAddressesWithNullList() {
-		assertThat(addressMapper.toAddresses(null)).isEmpty();
+		assertThat(AddressMapper.toAddresses(null)).isEmpty();
 	}
 }

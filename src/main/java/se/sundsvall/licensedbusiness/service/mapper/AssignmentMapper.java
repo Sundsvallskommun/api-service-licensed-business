@@ -1,32 +1,24 @@
 package se.sundsvall.licensedbusiness.service.mapper;
 
 import java.util.Optional;
-import org.springframework.stereotype.Component;
 import se.sundsvall.licensedbusiness.api.model.Assignment;
 import se.sundsvall.licensedbusiness.integration.db.model.RestaurantNumberAssignmentEntity;
 
-@Component
-public class AssignmentMapper {
+import static se.sundsvall.licensedbusiness.service.mapper.AddressMapper.toAddress;
+import static se.sundsvall.licensedbusiness.service.mapper.LicenseHolderMapper.toLicenseHolder;
+import static se.sundsvall.licensedbusiness.service.mapper.RestaurantNumberMapper.toRestaurantNumber;
 
-	private final RestaurantNumberMapper restaurantNumberMapper;
+public final class AssignmentMapper {
 
-	private final AddressMapper addressMapper;
+	private AssignmentMapper() {}
 
-	private final LicenseHolderMapper licenseHolderMapper;
-
-	public AssignmentMapper(final RestaurantNumberMapper restaurantNumberMapper, final AddressMapper addressMapper, final LicenseHolderMapper licenseHolderMapper) {
-		this.restaurantNumberMapper = restaurantNumberMapper;
-		this.addressMapper = addressMapper;
-		this.licenseHolderMapper = licenseHolderMapper;
-	}
-
-	public Assignment toAssignment(final RestaurantNumberAssignmentEntity entity) {
+	public static Assignment toAssignment(final RestaurantNumberAssignmentEntity entity) {
 		return Optional.ofNullable(entity)
 			.map(e -> Assignment.create()
 				.withId(e.getId())
-				.withRestaurantNumber(restaurantNumberMapper.toRestaurantNumber(e.getRestaurantNumber()))
-				.withAddress(addressMapper.toAddress(e.getAddress()))
-				.withLicenseHolder(licenseHolderMapper.toLicenseHolder(e.getLicenseHolder()))
+				.withRestaurantNumber(toRestaurantNumber(e.getRestaurantNumber()))
+				.withAddress(toAddress(e.getAddress()))
+				.withLicenseHolder(toLicenseHolder(e.getLicenseHolder()))
 				.withHolderName(e.getHolderName())
 				.withPremisesName(e.getPremisesName())
 				.withValidFrom(e.getValidFrom())

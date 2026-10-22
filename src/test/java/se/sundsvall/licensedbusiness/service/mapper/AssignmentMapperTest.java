@@ -13,8 +13,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class AssignmentMapperTest {
 
-	private final AssignmentMapper assignmentMapper = new AssignmentMapper(new RestaurantNumberMapper(), new AddressMapper(), new LicenseHolderMapper());
-
 	@Test
 	void toAssignment() {
 		final var created = OffsetDateTime.now();
@@ -30,7 +28,7 @@ class AssignmentMapperTest {
 			.withStatus(AssignmentStatus.ACTIVE)
 			.withCreated(created);
 
-		final var assignment = assignmentMapper.toAssignment(entity);
+		final var assignment = AssignmentMapper.toAssignment(entity);
 
 		assertThat(assignment.getId()).isEqualTo("assignment-1");
 		assertThat(assignment.getRestaurantNumber().getId()).isEqualTo("rn-1");
@@ -49,14 +47,14 @@ class AssignmentMapperTest {
 
 	@Test
 	void toAssignmentWithNullEntity() {
-		assertThat(assignmentMapper.toAssignment(null)).isNull();
+		assertThat(AssignmentMapper.toAssignment(null)).isNull();
 	}
 
 	@Test
 	void toAssignmentWithNullAssociations() {
 		final var entity = RestaurantNumberAssignmentEntity.create().withId("assignment-1");
 
-		final var assignment = assignmentMapper.toAssignment(entity);
+		final var assignment = AssignmentMapper.toAssignment(entity);
 
 		assertThat(assignment.getId()).isEqualTo("assignment-1");
 		assertThat(assignment.getRestaurantNumber()).isNull();
