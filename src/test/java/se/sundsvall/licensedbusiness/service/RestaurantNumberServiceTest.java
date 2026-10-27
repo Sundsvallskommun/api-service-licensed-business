@@ -1,7 +1,10 @@
 package se.sundsvall.licensedbusiness.service;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -9,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,6 +55,9 @@ class RestaurantNumberServiceTest {
 
 	@Mock
 	private AddressRepository addressRepository;
+
+	@Spy
+	private Clock clock = Clock.fixed(Instant.parse("2026-10-27T10:00:00Z"), ZoneId.of("Europe/Stockholm"));
 
 	@InjectMocks
 	private RestaurantNumberService restaurantNumberService;
@@ -193,7 +200,7 @@ class RestaurantNumberServiceTest {
 
 	@Test
 	void getAddressRestaurantNumbersShowsThePremisesOpenTodayOverAnOwnerChangeThatStartsLater() {
-		final var today = LocalDate.now();
+		final var today = LocalDate.now(clock);
 		final var takenOver = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("22810001").withMunicipalityId(MUNICIPALITY_ID);
 		final var notYetOpened = RestaurantNumberEntity.create().withId("number-2").withRestaurantNumber("22810002").withMunicipalityId(MUNICIPALITY_ID);
 
@@ -215,7 +222,7 @@ class RestaurantNumberServiceTest {
 
 	@Test
 	void getAddressRestaurantNumbersShowsTheActiveAssignmentOverAnEndedOneThatHasStarted() {
-		final var today = LocalDate.now();
+		final var today = LocalDate.now(clock);
 		final var reopening = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("22810001").withMunicipalityId(MUNICIPALITY_ID);
 
 		when(addressRepository.existsByIdAndMunicipalityId(ADDRESS_ID, MUNICIPALITY_ID)).thenReturn(true);
@@ -233,7 +240,7 @@ class RestaurantNumberServiceTest {
 
 	@Test
 	void getAddressRestaurantNumbersShowsTheRunningAssignmentUntilTheDayBeforeTheNextOneStarts() {
-		final var today = LocalDate.now();
+		final var today = LocalDate.now(clock);
 		final var number = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("22810001").withMunicipalityId(MUNICIPALITY_ID);
 
 		when(addressRepository.existsByIdAndMunicipalityId(ADDRESS_ID, MUNICIPALITY_ID)).thenReturn(true);
@@ -255,7 +262,7 @@ class RestaurantNumberServiceTest {
 
 	@Test
 	void getAddressRestaurantNumbersShowsTheNewAssignmentFromTheDayItStartsWhileTheOldOneIsStillActive() {
-		final var today = LocalDate.now();
+		final var today = LocalDate.now(clock);
 		final var number = RestaurantNumberEntity.create().withId("number-1").withRestaurantNumber("22810001").withMunicipalityId(MUNICIPALITY_ID);
 
 		when(addressRepository.existsByIdAndMunicipalityId(ADDRESS_ID, MUNICIPALITY_ID)).thenReturn(true);

@@ -1,7 +1,7 @@
 package se.sundsvall.licensedbusiness.service.scheduler;
 
+import java.time.Clock;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import se.sundsvall.dept44.scheduling.Dept44Scheduled;
@@ -13,8 +13,11 @@ public class AssignmentStatusScheduler {
 
 	private final RestaurantNumberAssignmentRepository restaurantNumberAssignmentRepository;
 
-	public AssignmentStatusScheduler(final RestaurantNumberAssignmentRepository restaurantNumberAssignmentRepository) {
+	private final Clock clock;
+
+	public AssignmentStatusScheduler(final RestaurantNumberAssignmentRepository restaurantNumberAssignmentRepository, final Clock clock) {
 		this.restaurantNumberAssignmentRepository = restaurantNumberAssignmentRepository;
+		this.clock = clock;
 	}
 
 	@Transactional
@@ -24,7 +27,7 @@ public class AssignmentStatusScheduler {
 		lockAtMostFor = "${schedulers.update-assignment-status.shedlock-lock-at-most-for}",
 		maximumExecutionTime = "${schedulers.update-assignment-status.maximum-execution-time}")
 	public void updateExpiredAssignmentStatus() {
-		final var today = LocalDate.now(ZoneId.systemDefault());
+		final var today = LocalDate.now(clock);
 
 		restaurantNumberAssignmentRepository.findAllByStatusAndValidToBefore(AssignmentStatus.ACTIVE, today)
 			.forEach(assignment -> assignment.setStatus(AssignmentStatus.ENDED));

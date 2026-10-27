@@ -10,23 +10,25 @@ import static se.sundsvall.licensedbusiness.integration.db.model.enums.Assignmen
 
 class AssignmentStatusTest {
 
+	private static final LocalDate TODAY = LocalDate.of(2026, 10, 27);
+
 	@Test
 	void openEndedAssignmentIsActive() {
-		assertThat(fromValidTo(null)).isEqualTo(ACTIVE);
+		assertThat(fromValidTo(null, TODAY)).isEqualTo(ACTIVE);
 	}
 
 	@Test
 	void lastValidDayIsInclusive() {
-		assertThat(fromValidTo(LocalDate.now())).isEqualTo(ACTIVE);
+		assertThat(fromValidTo(TODAY, TODAY)).isEqualTo(ACTIVE);
 	}
 
 	@Test
 	void assignmentIsEndedTheDayAfterItsLastValidDay() {
-		assertThat(fromValidTo(LocalDate.now().minusDays(1))).isEqualTo(ENDED);
+		assertThat(fromValidTo(TODAY.minusDays(1), TODAY)).isEqualTo(ENDED);
 	}
 
 	@Test
 	void futureLastValidDayIsActive() {
-		assertThat(fromValidTo(LocalDate.now().plusYears(1))).isEqualTo(ACTIVE);
+		assertThat(fromValidTo(TODAY.plusYears(1), TODAY)).isEqualTo(ACTIVE);
 	}
 }

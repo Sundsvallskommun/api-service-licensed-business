@@ -1,5 +1,6 @@
 package se.sundsvall.licensedbusiness.service;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -38,12 +39,15 @@ public class AssignmentService {
 
 	private final LicenseHolderRepository licenseHolderRepository;
 
+	private final Clock clock;
+
 	public AssignmentService(final RestaurantNumberRepository restaurantNumberRepository, final RestaurantNumberAssignmentRepository restaurantNumberAssignmentRepository,
-		final AddressRepository addressRepository, final LicenseHolderRepository licenseHolderRepository) {
+		final AddressRepository addressRepository, final LicenseHolderRepository licenseHolderRepository, final Clock clock) {
 		this.restaurantNumberRepository = restaurantNumberRepository;
 		this.restaurantNumberAssignmentRepository = restaurantNumberAssignmentRepository;
 		this.addressRepository = addressRepository;
 		this.licenseHolderRepository = licenseHolderRepository;
+		this.clock = clock;
 	}
 
 	@Transactional(readOnly = true)
@@ -100,7 +104,7 @@ public class AssignmentService {
 			.withPremisesName(request.getPremisesName())
 			.withValidFrom(request.getValidFrom())
 			.withValidTo(request.getValidTo())
-			.withStatus(fromValidTo(request.getValidTo())))
+			.withStatus(fromValidTo(request.getValidTo(), LocalDate.now(clock))))
 			.getId();
 	}
 
@@ -119,7 +123,7 @@ public class AssignmentService {
 		entity.setValidTo(validTo);
 		Optional.ofNullable(request.getPremisesName()).ifPresent(entity::setPremisesName);
 		Optional.ofNullable(request.getHolderName()).ifPresent(entity::setHolderName);
-		entity.setStatus(fromValidTo(validTo));
+		entity.setStatus(fromValidTo(validTo, LocalDate.now(clock)));
 
 		try {
 			return AssignmentMapper.toAssignment(restaurantNumberAssignmentRepository.saveAndFlush(entity));

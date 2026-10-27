@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,12 +49,15 @@ public class ImportService {
 
 	private final RestaurantNumberAssignmentRepository restaurantNumberAssignmentRepository;
 
+	private final Clock clock;
+
 	public ImportService(final AddressRepository addressRepository, final LicenseHolderRepository licenseHolderRepository, final RestaurantNumberRepository restaurantNumberRepository,
-		final RestaurantNumberAssignmentRepository restaurantNumberAssignmentRepository) {
+		final RestaurantNumberAssignmentRepository restaurantNumberAssignmentRepository, final Clock clock) {
 		this.addressRepository = addressRepository;
 		this.licenseHolderRepository = licenseHolderRepository;
 		this.restaurantNumberRepository = restaurantNumberRepository;
 		this.restaurantNumberAssignmentRepository = restaurantNumberAssignmentRepository;
+		this.clock = clock;
 	}
 
 	@Transactional
@@ -117,6 +121,10 @@ public class ImportService {
 		final var validToRaw = csvRecord.get("valid_to");
 		final var validTo = (validToRaw == null || validToRaw.isBlank()) ? null : LocalDate.parse(validToRaw.trim());
 		final var status = AssignmentStatus.valueOf(csvRecord.get("status").trim().toUpperCase(Locale.ROOT));
+		final var expectedStatus = AssignmentStatus.fromValidTo(validTo, LocalDate.now(clock));
+		if (status != expectedStatus) {
+			throw new IllegalArgumentException("status %s does not match valid_to %s, expected %s".formatted(status, validTo, expectedStatus));
+		}
 
 		var addressesCreated = 0;
 		var address = addressRepository.findByStreetAddressAndPostalCodeAndMunicipalityId(streetAddress, postalCode, municipalityId).orElse(null);

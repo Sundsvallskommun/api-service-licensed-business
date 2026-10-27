@@ -1,7 +1,7 @@
 package se.sundsvall.licensedbusiness.service;
 
+import java.time.Clock;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -52,11 +52,14 @@ public class RestaurantNumberService {
 
 	private final AddressRepository addressRepository;
 
+	private final Clock clock;
+
 	public RestaurantNumberService(final RestaurantNumberRepository restaurantNumberRepository, final RestaurantNumberAssignmentRepository restaurantNumberAssignmentRepository,
-		final AddressRepository addressRepository) {
+		final AddressRepository addressRepository, final Clock clock) {
 		this.restaurantNumberRepository = restaurantNumberRepository;
 		this.restaurantNumberAssignmentRepository = restaurantNumberAssignmentRepository;
 		this.addressRepository = addressRepository;
+		this.clock = clock;
 	}
 
 	public RestaurantNumber getRestaurantNumber(final String municipalityId, final String restaurantNumber) {
@@ -130,7 +133,7 @@ public class RestaurantNumberService {
 
 		final var assignmentsPerNumber = restaurantNumberAssignmentRepository.findAllByRestaurantNumber_Address_Id(addressId).stream()
 			.collect(groupingBy(assignment -> assignment.getRestaurantNumber().getId()));
-		final var shownFirst = shownFirst(LocalDate.now(ZoneId.systemDefault()));
+		final var shownFirst = shownFirst(LocalDate.now(clock));
 
 		return restaurantNumberRepository.findAllByMunicipalityIdAndAddress_IdOrderByRestaurantNumber(municipalityId, addressId).stream()
 			.map(restaurantNumber -> toAddressRestaurantNumber(restaurantNumber, assignmentsPerNumber.getOrDefault(restaurantNumber.getId(), emptyList()), shownFirst))

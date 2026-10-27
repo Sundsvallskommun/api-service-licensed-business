@@ -1,6 +1,9 @@
 package se.sundsvall.licensedbusiness.service;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -8,6 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.OptimisticLockingFailureException;
 import se.sundsvall.dept44.problem.Problem;
@@ -58,6 +62,9 @@ class AssignmentServiceTest {
 
 	@Mock
 	private LicenseHolderRepository licenseHolderRepository;
+
+	@Spy
+	private Clock clock = Clock.fixed(Instant.parse("2026-10-27T10:00:00Z"), ZoneId.of("Europe/Stockholm"));
 
 	@InjectMocks
 	private AssignmentService assignmentService;
@@ -465,7 +472,7 @@ class AssignmentServiceTest {
 		when(restaurantNumberAssignmentRepository.findByIdAndRestaurantNumber_MunicipalityId(ASSIGNMENT_ID, MUNICIPALITY_ID)).thenReturn(Optional.of(entity));
 		when(restaurantNumberAssignmentRepository.saveAndFlush(entity)).thenReturn(entity);
 
-		final var future = LocalDate.now().plusYears(1);
+		final var future = LocalDate.now(clock).plusYears(1);
 		final var result = assignmentService.updateAssignment(MUNICIPALITY_ID, ASSIGNMENT_ID, AssignmentUpdateRequest.create().withValidTo(future));
 
 		assertThat(result.getValidTo()).isEqualTo(future);

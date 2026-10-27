@@ -3,12 +3,16 @@ package se.sundsvall.licensedbusiness.service;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import se.sundsvall.dept44.problem.Problem;
@@ -26,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,6 +49,9 @@ class ImportServiceTest {
 
 	@Mock
 	private RestaurantNumberAssignmentRepository restaurantNumberAssignmentRepository;
+
+	@Spy
+	private Clock clock = Clock.fixed(Instant.parse("2026-10-27T10:00:00Z"), ZoneId.of("Europe/Stockholm"));
 
 	@InjectMocks
 	private ImportService importService;
@@ -226,6 +234,24 @@ class ImportServiceTest {
 			.isInstanceOf(Problem.class)
 			.hasMessageContaining("Import failed, no data was saved")
 			.hasMessageContaining("Row 2");
+	}
+
+	@Test
+	void importRestaurantNumbersRejectsAStatusThatDoesNotMatchValidTo() {
+		final var csv = """
+			street_address,postal_code,postal_area,restaurant_number,org_number,holder_name,premises_name,valid_from,valid_to,status
+			Storgatan 1,852 30,Sundsvall,1001,5566112233,Bolag A,Pub A,2020-01-01,,ENDED
+			Storgatan 2,852 31,Sundsvall,1002,5566112233,Bolag A,Pub B,2020-01-01,2026-10-26,ACTIVE
+			Storgatan 3,852 32,Sundsvall,1003,5566112233,Bolag A,Pub C,2020-01-01,2026-10-27,ENDED
+			""";
+		final var file = new MockMultipartFile("file", "import.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8));
+
+		assertThatThrownBy(() -> importService.importRestaurantNumbers(MUNICIPALITY_ID, file))
+			.isInstanceOf(Problem.class)
+			.hasMessageContaining("Row 1: status ENDED does not match valid_to null, expected ACTIVE")
+			.hasMessageContaining("Row 2: status ACTIVE does not match valid_to 2026-10-26, expected ENDED")
+			.hasMessageContaining("Row 3: status ENDED does not match valid_to 2026-10-27, expected ACTIVE");
+		verifyNoInteractions(addressRepository, licenseHolderRepository, restaurantNumberRepository, restaurantNumberAssignmentRepository);
 	}
 
 	@Test
