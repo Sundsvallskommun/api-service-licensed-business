@@ -8,8 +8,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class LicenseHolderMapperTest {
 
-	private final LicenseHolderMapper licenseHolderMapper = new LicenseHolderMapper();
-
 	@Test
 	void toLicenseHolder() {
 		final var created = OffsetDateTime.now();
@@ -19,7 +17,7 @@ class LicenseHolderMapperTest {
 			.withName("Restaurang i Sundsvall AB")
 			.withCreated(created);
 
-		final var licenseHolder = licenseHolderMapper.toLicenseHolder(entity);
+		final var licenseHolder = LicenseHolderMapper.toLicenseHolder(entity);
 
 		assertThat(licenseHolder.getId()).isEqualTo("holder-1");
 		assertThat(licenseHolder.getOrgNumber()).isEqualTo("556612-4144");
@@ -29,6 +27,6 @@ class LicenseHolderMapperTest {
 
 	@Test
 	void toLicenseHolderWithNullEntity() {
-		assertThat(licenseHolderMapper.toLicenseHolder(null)).isNull();
+		assertThat(LicenseHolderMapper.toLicenseHolder(null)).isNull();
 	}
 }

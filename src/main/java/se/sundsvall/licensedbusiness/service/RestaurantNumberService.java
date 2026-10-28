@@ -1,7 +1,7 @@
 package se.sundsvall.licensedbusiness.service;
 
+import java.time.Clock;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -52,19 +52,19 @@ public class RestaurantNumberService {
 
 	private final AddressRepository addressRepository;
 
-	private final RestaurantNumberMapper restaurantNumberMapper;
+	private final Clock clock;
 
 	public RestaurantNumberService(final RestaurantNumberRepository restaurantNumberRepository, final RestaurantNumberAssignmentRepository restaurantNumberAssignmentRepository,
-		final AddressRepository addressRepository, final RestaurantNumberMapper restaurantNumberMapper) {
+		final AddressRepository addressRepository, final Clock clock) {
 		this.restaurantNumberRepository = restaurantNumberRepository;
 		this.restaurantNumberAssignmentRepository = restaurantNumberAssignmentRepository;
 		this.addressRepository = addressRepository;
-		this.restaurantNumberMapper = restaurantNumberMapper;
+		this.clock = clock;
 	}
 
 	public RestaurantNumber getRestaurantNumber(final String municipalityId, final String restaurantNumber) {
 		return restaurantNumberRepository.findByRestaurantNumberAndMunicipalityId(restaurantNumber, municipalityId)
-			.map(restaurantNumberMapper::toRestaurantNumber)
+			.map(RestaurantNumberMapper::toRestaurantNumber)
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, "Restaurant number %s not found".formatted(sanitize(restaurantNumber))));
 	}
 
@@ -122,7 +122,7 @@ public class RestaurantNumberService {
 		}
 
 		final var entities = restaurantNumberRepository.findAvailableByMunicipalityIdAndAddressId(municipalityId, addressId);
-		return restaurantNumberMapper.toRestaurantNumbers(entities);
+		return RestaurantNumberMapper.toRestaurantNumbers(entities);
 	}
 
 	@Transactional(readOnly = true)
@@ -133,7 +133,7 @@ public class RestaurantNumberService {
 
 		final var assignmentsPerNumber = restaurantNumberAssignmentRepository.findAllByRestaurantNumber_Address_Id(addressId).stream()
 			.collect(groupingBy(assignment -> assignment.getRestaurantNumber().getId()));
-		final var shownFirst = shownFirst(LocalDate.now(ZoneId.systemDefault()));
+		final var shownFirst = shownFirst(LocalDate.now(clock));
 
 		return restaurantNumberRepository.findAllByMunicipalityIdAndAddress_IdOrderByRestaurantNumber(municipalityId, addressId).stream()
 			.map(restaurantNumber -> toAddressRestaurantNumber(restaurantNumber, assignmentsPerNumber.getOrDefault(restaurantNumber.getId(), emptyList()), shownFirst))
@@ -145,7 +145,7 @@ public class RestaurantNumberService {
 		final var shownAssignment = assignments.stream().max(shownFirst).orElse(null);
 		final var status = assignments.stream().anyMatch(assignment -> assignment.getStatus() == ACTIVE) ? STATUS_ACTIVE : STATUS_AVAILABLE;
 
-		return restaurantNumberMapper.toAddressRestaurantNumber(restaurantNumber, shownAssignment, status);
+		return RestaurantNumberMapper.toAddressRestaurantNumber(restaurantNumber, shownAssignment, status);
 	}
 
 	private static Comparator<RestaurantNumberAssignmentEntity> shownFirst(final LocalDate today) {
